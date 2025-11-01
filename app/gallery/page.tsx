@@ -2,6 +2,7 @@
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import { TextureLoader } from 'three'
 import { useEffect, useState, useRef, Suspense } from 'react'
+import { Mesh } from 'three'
 
 interface FloatingImageProps {
   textureUrl: string
@@ -16,7 +17,7 @@ declare global {
 
 function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
   const texture = useLoader(TextureLoader, textureUrl)
-  const ref = useRef<THREE.Mesh>(null)
+  const ref = useRef<Mesh>(null)
   const { viewport } = useThree()
 
   const initialZ = -30 - Math.random() * 20
