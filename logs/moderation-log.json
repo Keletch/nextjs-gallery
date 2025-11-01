@@ -1,0 +1,98 @@
+[
+  {
+    "filename": "1761940567569-922734038316224186.png",
+    "action": "move-to-approved",
+    "from": "rejected",
+    "to": "approved",
+    "timestamp": "2025-10-31T20:43:29.360Z"
+  },
+  {
+    "filename": "1761941605268-922429301796696220.png",
+    "action": "move-to-rejected",
+    "from": "approved",
+    "to": "rejected",
+    "timestamp": "2025-10-31T20:43:41.057Z"
+  },
+  {
+    "filename": "1761941605268-922429301796696220.png",
+    "action": "move-to-approved",
+    "from": "rejected",
+    "to": "approved",
+    "timestamp": "2025-10-31T20:58:04.961Z"
+  },
+  {
+    "filename": "1761944769508-921816731012332113.png",
+    "action": "upload",
+    "from": "client",
+    "to": "pending",
+    "device": "escritorio",
+    "browser": "Chrome",
+    "os": "Windows NT",
+    "location": "undefined, undefined, undefined",
+    "timestamp": "2025-10-31T21:06:09.949Z"
+  },
+  {
+    "filename": "1761944780563-922730165329516755.png",
+    "action": "upload",
+    "from": "client",
+    "to": "pending",
+    "device": "escritorio",
+    "browser": "Chrome",
+    "os": "Windows NT",
+    "location": "undefined, undefined, undefined",
+    "timestamp": "2025-10-31T21:06:20.932Z"
+  },
+  {
+    "filename": "1761944769508-921816731012332113.png",
+    "action": "approved",
+    "from": "pending",
+    "to": "approved",
+    "timestamp": "2025-10-31T21:08:49.662Z"
+  },
+  {
+    "filename": "1761944780563-922730165329516755.png",
+    "action": "reject",
+    "from": "pending",
+    "to": "rejected",
+    "timestamp": "2025-10-31T21:08:55.996Z"
+  },
+  {
+    "filename": "1761940567569-922734038316224186.png",
+    "action": "move-to-rejected",
+    "from": "approved",
+    "to": "rejected",
+    "timestamp": "2025-10-31T21:09:09.900Z"
+  },
+  {
+    "filename": "1761946917898-1bbf9c16-1844-4c45-b4d8-9803f37e2477.png",
+    "action": "upload",
+    "from": "client",
+    "to": "pending",
+    "device": "escritorio",
+    "browser": "Chrome",
+    "os": "Windows NT",
+    "location": "undefined, undefined, undefined",
+    "timestamp": "2025-10-31T21:41:58.543Z"
+  },
+  {
+    "filename": "1761946917898-1bbf9c16-1844-4c45-b4d8-9803f37e2477.png",
+    "action": "approved",
+    "from": "pending",
+    "to": "approved",
+    "timestamp": "2025-10-31T22:19:29.224Z"
+  },
+  {
+    "filename": "1761940567569-922734038316224186.png",
+    "action": "move-to-approved",
+    "from": "rejected",
+    "to": "approved",
+    "timestamp": "2025-10-31T22:19:37.494Z"
+  },
+  {
+    "filename": "1761944780563-922730165329516755.png",
+    "action": "move-to-approved",
+    "from": "rejected",
+    "to": "approved",
+    "timestamp": "2025-10-31T22:19:42.121Z"
+  }
+]
