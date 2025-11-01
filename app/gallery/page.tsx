@@ -8,9 +8,15 @@ interface FloatingImageProps {
   delay: number
 }
 
+declare global {
+  interface Window {
+    __gallerySpeed: number
+  }
+}
+
 function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
   const texture = useLoader(TextureLoader, textureUrl)
-  const ref = useRef<any>()
+  const ref = useRef<THREE.Mesh>(null)
   const { viewport } = useThree()
 
   const initialZ = -30 - Math.random() * 20
@@ -18,11 +24,11 @@ function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
   const initialY = (Math.random() - 0.5) * viewport.height * 2.5
 
   const position = useRef<[number, number, number]>([initialX, initialY, initialZ])
-  const scale = useRef(0.5)
-  const activated = useRef(false)
-  const activationTime = useRef(performance.now() + delay)
+  const scale = useRef<number>(0.5)
+  const activated = useRef<boolean>(false)
+  const activationTime = useRef<number>(performance.now() + delay)
 
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState<boolean>(false)
 
   useFrame(() => {
     const now = performance.now()
@@ -71,7 +77,9 @@ export default function GalleryPage() {
     const fetchGallery = async () => {
       const resImages = await fetch('/api/approved-index')
       const list = await resImages.json()
-      const validList = list.filter((f: unknown): f is string => typeof f === 'string' && f.trim() !== '')
+      const validList = Array.isArray(list)
+        ? list.filter((f: unknown): f is string => typeof f === 'string' && f.trim() !== '')
+        : []
       setImages(validList)
     }
 
