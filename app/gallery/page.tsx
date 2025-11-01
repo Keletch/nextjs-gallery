@@ -69,7 +69,7 @@ export default function GalleryPage() {
 
     fetchGallery()
 
-    // Scroll con aceleración suave
+    // Scroll con aceleración suave suaveeee
     window.__gallerySpeed = 1
     let targetSpeed = 1
     let lastScroll = performance.now()
