@@ -3,7 +3,12 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import { TextureLoader } from 'three'
 import { useEffect, useState, useRef, Suspense } from 'react'
 
-function FloatingImage({ textureUrl, delay }) {
+interface FloatingImageProps {
+  textureUrl: string
+  delay: number
+}
+
+function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
   const texture = useLoader(TextureLoader, textureUrl)
   const ref = useRef<any>()
   const { viewport } = useThree()
@@ -12,29 +17,28 @@ function FloatingImage({ textureUrl, delay }) {
   const initialX = (Math.random() - 0.5) * viewport.width * 2.5
   const initialY = (Math.random() - 0.5) * viewport.height * 2.5
 
-  const position = useRef([initialX, initialY, initialZ])
+  const position = useRef<[number, number, number]>([initialX, initialY, initialZ])
   const scale = useRef(0.5)
   const activated = useRef(false)
   const activationTime = useRef(performance.now() + delay)
 
-  useFrame(({ clock }) => {
-    if (!ref.current) return
+  const [visible, setVisible] = useState(false)
 
+  useFrame(() => {
     const now = performance.now()
     if (!activated.current && now >= activationTime.current) {
       activated.current = true
+      setVisible(true)
     }
 
-    if (!activated.current) return
+    if (!activated.current || !ref.current) return
 
-    // Movimiento hacia la cámara
     position.current[2] += 0.02 * window.__gallerySpeed
     scale.current = Math.min(1.5, scale.current + 0.005 * window.__gallerySpeed)
 
     ref.current.position.set(...position.current)
     ref.current.scale.setScalar(scale.current)
 
-    // Reinicio cuando pasa el frente
     if (position.current[2] > 6) {
       position.current[2] = -20 - Math.random() * 10
       position.current[0] = (Math.random() - 0.5) * viewport.width * 1.5
@@ -42,12 +46,15 @@ function FloatingImage({ textureUrl, delay }) {
       scale.current = 0.5
       activationTime.current = performance.now() + delay
       activated.current = false
+      setVisible(false)
     }
   })
 
   const aspect = texture.image.width / texture.image.height
   const height = 1.5
   const width = height * aspect
+
+  if (!visible) return null
 
   return (
     <mesh ref={ref}>
@@ -64,12 +71,12 @@ export default function GalleryPage() {
     const fetchGallery = async () => {
       const resImages = await fetch('/api/approved-index')
       const list = await resImages.json()
-      setImages(list)
+      const validList = list.filter((f: unknown): f is string => typeof f === 'string' && f.trim() !== '')
+      setImages(validList)
     }
 
     fetchGallery()
 
-    // Scroll con aceleración suave suaveeee
     window.__gallerySpeed = 1
     let targetSpeed = 1
     let lastScroll = performance.now()
@@ -107,7 +114,7 @@ export default function GalleryPage() {
             <FloatingImage
               key={`${filename}-${i}`}
               textureUrl={`/approved/${filename}`}
-              delay={i * 600}
+              delay={i * 1500}
             />
           ))}
         </Suspense>
