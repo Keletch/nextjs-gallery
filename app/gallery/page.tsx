@@ -1,12 +1,12 @@
 'use client'
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
-import { TextureLoader } from 'three'
+import { TextureLoader, Mesh } from 'three'
 import { useEffect, useState, useRef, Suspense } from 'react'
-import { Mesh } from 'three'
 
 interface FloatingImageProps {
   textureUrl: string
   delay: number
+  onClick: (url: string) => void
 }
 
 declare global {
@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
+function FloatingImage({ textureUrl, delay, onClick }: FloatingImageProps) {
   const texture = useLoader(TextureLoader, textureUrl)
   const ref = useRef<Mesh>(null)
   const { viewport } = useThree()
@@ -30,6 +30,8 @@ function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
   const activationTime = useRef<number>(performance.now() + delay)
 
   const [visible, setVisible] = useState<boolean>(false)
+  const [paused, setPaused] = useState<boolean>(false)
+  const [hovered, setHovered] = useState<boolean>(false)
 
   useFrame(() => {
     const now = performance.now()
@@ -38,7 +40,7 @@ function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
       setVisible(true)
     }
 
-    if (!activated.current || !ref.current) return
+    if (!activated.current || !ref.current || paused) return
 
     position.current[2] += 0.02 * window.__gallerySpeed
     scale.current = Math.min(1.5, scale.current + 0.005 * window.__gallerySpeed)
@@ -64,15 +66,37 @@ function FloatingImage({ textureUrl, delay }: FloatingImageProps) {
   if (!visible) return null
 
   return (
-    <mesh ref={ref}>
+    <mesh
+      ref={ref}
+      onPointerOver={(e) => {
+        e.stopPropagation()
+        setPaused(true)
+        setHovered(true)
+        document.body.style.cursor = 'pointer'
+      }}
+      onPointerOut={(e) => {
+        e.stopPropagation()
+        setPaused(false)
+        setHovered(false)
+        document.body.style.cursor = 'default'
+      }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick(textureUrl)
+      }}
+    >
       <planeGeometry args={[width, height]} />
-      <meshStandardMaterial map={texture} toneMapped={false} />
+      <meshStandardMaterial
+        map={texture}
+        toneMapped={false}
+      />
     </mesh>
   )
 }
 
 export default function GalleryPage() {
   const [images, setImages] = useState<string[]>([])
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchGallery = async () => {
@@ -89,6 +113,7 @@ export default function GalleryPage() {
     window.__gallerySpeed = 1
     let targetSpeed = 1
     let lastScroll = performance.now()
+    let touchStartY: number | null = null
 
     const handleScroll = (e: WheelEvent) => {
       const delta = e.deltaY
@@ -96,38 +121,124 @@ export default function GalleryPage() {
       lastScroll = performance.now()
     }
 
-    window.addEventListener('wheel', handleScroll)
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (touchStartY !== null) {
+        const currentY = e.touches[0].clientY
+        const deltaY = touchStartY - currentY
+        targetSpeed = Math.min(5, Math.max(1, targetSpeed + deltaY * 0.01))
+        lastScroll = performance.now()
+        touchStartY = currentY
+      }
+    }
+
+    const handleTouchEnd = () => {
+      touchStartY = null
+    }
+
+    window.addEventListener('wheel', handleScroll, { passive: true })
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
+    window.addEventListener('touchend', handleTouchEnd, { passive: true })
 
     const smoothSpeed = () => {
       const now = performance.now()
       const timeSinceScroll = now - lastScroll
       if (timeSinceScroll > 300) {
-        targetSpeed = Math.max(1, targetSpeed - 0.1)
+        targetSpeed = Math.max(1, targetSpeed - 0.02)
       }
-      window.__gallerySpeed += (targetSpeed - window.__gallerySpeed) * 0.2
+      window.__gallerySpeed += (targetSpeed - window.__gallerySpeed) * 0.05
       requestAnimationFrame(smoothSpeed)
     }
 
     smoothSpeed()
 
-    return () => window.removeEventListener('wheel', handleScroll)
+    return () => {
+      window.removeEventListener('wheel', handleScroll)
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handleTouchEnd)
+    }
   }, [])
 
   return (
-    <div style={{ height: '100vh', width: '100vw', background: '#000' }}>
-      <Canvas camera={{ position: [0, 0, 5], fov: 60 }}>
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} />
+    <div
+      style={{
+        height: '100vh',
+        width: '100vw',
+        background: 'linear-gradient(180deg, #000 0%, #111 50%, #000 100%)', // 🌌 gradiente
+        position: 'relative',
+      }}
+    >
+      <Canvas camera={{ position: [0, 0, 5], fov: 60 }} shadows>
+        {/* 💡 luces más ricas */}
+        <ambientLight intensity={0.3} />
+        <hemisphereLight intensity={0.6} groundColor={'#222'} />
+        <directionalLight position={[5, 5, 5]} intensity={1} castShadow color={'#ffddaa'} />
         <Suspense fallback={null}>
           {images.map((filename, i) => (
             <FloatingImage
               key={`${filename}-${i}`}
               textureUrl={`/approved/${filename}`}
               delay={i * 1500}
+              onClick={(url) => setSelectedImage(url)}
             />
           ))}
         </Suspense>
       </Canvas>
+
+      {/* Overlay fullscreen con animación */}
+      {selectedImage && (
+        <div
+          onClick={() => setSelectedImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            cursor: 'zoom-out',
+            animation: 'fadeIn 0.3s ease',
+          }}
+        >
+          <img
+            src={selectedImage}
+            alt="fullscreen"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain',
+              borderRadius: '12px',
+              transform: 'scale(1)',
+              animation: 'zoomIn 0.3s ease',
+            }}
+          />
+          <style jsx global>{`
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+              }
+              to {
+                opacity: 1;
+              }
+            }
+            @keyframes zoomIn {
+              from {
+                transform: scale(0.8);
+              }
+                            to {
+                transform: scale(1);
+              }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   )
 }
+               
