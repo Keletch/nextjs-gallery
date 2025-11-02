@@ -174,7 +174,7 @@ export default function GalleryPage() {
       }}
     >
       <Canvas camera={{ position: [0, 0, 5], fov: 60 }} shadows>
-        {/* 💡 luces más ricas */}
+        {/* 💡 luces más ricass */}
         <ambientLight intensity={0.3} />
         <hemisphereLight intensity={0.6} groundColor={'#222'} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow color={'#ffddaa'} />
