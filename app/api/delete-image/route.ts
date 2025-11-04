@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unlink } from 'fs/promises'
-import path from 'path'
+import { deleteFile, logAction } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   const { filename, folder } = await req.json()
-  const filePath = path.join(process.cwd(), 'public', folder, filename)
+
+  if (!filename || !folder) {
+    return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+  }
 
   try {
-    await unlink(filePath)
+    await deleteFile(filename, folder)
+
+    await logAction({
+      filename,
+      action: 'delete',
+      from: folder,
+      to: 'none',
+      device: 'server',
+      browser: 'n/a',
+      os: 'n/a',
+      location: 'n/a',
+    })
+
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('Error al eliminar imagen:', err)

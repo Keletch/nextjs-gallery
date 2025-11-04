@@ -7,6 +7,7 @@ export default function ModeratePage() {
   const [folder, setFolder] = useState<Folder>('pending')
   const [logView, setLogView] = useState<'moderation' | 'uploads'>('moderation')
   const [images, setImages] = useState<string[]>([])
+  const [urls, setUrls] = useState<Record<string, string>>({})
   const [logs, setLogs] = useState<any[]>([])
   const [status, setStatus] = useState<string>('')
 
@@ -22,7 +23,33 @@ export default function ModeratePage() {
       try {
         const res = await fetch(`/api/${folder}-index`)
         const list = await res.json()
-        setImages(list)
+
+        const validImages = Array.isArray(list)
+          ? list
+              .filter((f: unknown): f is string => typeof f === 'string')
+              .filter((f) =>
+                /\.(png|jpg|jpeg|webp|gif)$/i.test(f) && f !== '.emptyFolderPlaceholder'
+              )
+          : []
+
+        setImages(validImages)
+
+        const entries = await Promise.all(
+          validImages.map(async (filename) => {
+            try {
+              const res = await fetch('/api/get-signed-url', {
+                method: 'POST',
+                body: JSON.stringify({ folder, filename }),
+                headers: { 'Content-Type': 'application/json' },
+              })
+              const json = await res.json()
+              return [filename, json.url || '']
+            } catch {
+              return [filename, '']
+            }
+          })
+        )
+        setUrls(Object.fromEntries(entries))
       } catch (err) {
         console.error('Error al cargar imágenes:', err)
         setStatus('No se pudieron cargar las imágenes')
@@ -43,17 +70,6 @@ export default function ModeratePage() {
       if (res.ok) {
         setImages(prev => prev.filter(img => img !== payload.filename))
         setStatus(successMsg)
-
-        await fetch('/api/log-action', {
-          method: 'POST',
-          body: JSON.stringify({
-            filename: payload.filename,
-            action: endpoint.split('/').pop(),
-            from: folder,
-            to: inferDestination(endpoint, folder),
-          }),
-          headers: { 'Content-Type': 'application/json' },
-        })
       } else {
         setStatus('Error en la operación')
       }
@@ -99,7 +115,7 @@ export default function ModeratePage() {
             label: 'Mover a rechazadas',
             handler: filename => {
               if (confirm(`¿Mover "${filename}" a rechazadas?`)) {
-                handleAction('/api/move-to-rejected', { filename }, `Movida a rechazadas: ${filename}`)
+                handleAction('/api/move-to-rejected', { filename, from: 'approved' }, `Movida a rechazadas: ${filename}`)
               }
             },
           },
@@ -118,7 +134,7 @@ export default function ModeratePage() {
             label: 'Mover a aprobadas',
             handler: filename => {
               if (confirm(`¿Mover "${filename}" a aprobadas?`)) {
-                handleAction('/api/move-to-approved', { filename }, `Movida a aprobadas: ${filename}`)
+                handleAction('/api/move-to-approved', { filename, from:'rejected' }, `Movida a aprobadas: ${filename}`)
               }
             },
           },
@@ -148,7 +164,7 @@ export default function ModeratePage() {
       {status && <p>{status}</p>}
 
       {folder !== 'logs' && (
-        <ModerationPanel folder={folder} images={images} actions={getActions()} />
+        <ModerationPanel folder={folder} images={images} urls={urls} actions={getActions()} />
       )}
 
       {folder === 'logs' && (
@@ -223,31 +239,38 @@ export default function ModeratePage() {
 function ModerationPanel({
   folder,
   images,
+  urls,
   actions,
 }: {
   folder: string
   images: string[]
+  urls: Record<string, string>
   actions: { label: string; handler: (filename: string) => void }[]
 }) {
   if (images.length === 0) return <p>No hay imágenes en esta sección.</p>
 
   return (
     <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-      {images.map(filename => (
-        <div key={filename} style={{ border: '1px solid #ccc', padding: '1rem' }}>
-          <img src={`/${folder}/${filename}`} alt={filename} style={{ maxWidth: '100%', maxHeight: '200px' }} />
-          <p style={{ wordBreak: 'break-word' }}>{filename}</p>
-          {actions.map(action => (
-            <button
-              key={action.label}
-              onClick={() => action.handler(filename)}
-              style={{ marginRight: '0.5rem', marginTop: '0.5rem' }}
-            >
-                           {action.label}
-            </button>
-          ))}
-        </div>
-      ))}
+      {images.map(filename => {
+        const url = urls[filename]
+        if (!url) return null
+
+        return (
+          <div key={filename} style={{ border: '1px solid #ccc', padding: '1rem' }}>
+            <img src={url} alt={filename} style={{ maxWidth: '100%', maxHeight: '200px' }} />
+            <p style={{ wordBreak: 'break-word' }}>{filename}</p>
+            {actions.map(action => (
+              <button
+                key={action.label}
+                onClick={() => action.handler(filename)}
+                style={{ marginRight: '0.5rem', marginTop: '0.5rem' }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )
+      })}
     </div>
   )
 }

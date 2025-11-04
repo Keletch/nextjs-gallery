@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile } from 'fs/promises'
-import path from 'path'
+import { uploadToBucket, logAction } from '@/lib/supabase'
 
 const MAX_SIZE_MB = 5
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -39,17 +38,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Archivo demasiado grande (máx 5MB)' }, { status: 413 })
     }
 
-    const rawName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '')
-    const timestamp = Date.now()
-    const filename = `${timestamp}-${rawName}`
+    // 📦 Subir a Supabase Storage
+    const filename = await uploadToBucket(file, 'pending')
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const filepath = path.join(process.cwd(), 'public/pending', filename)
-
-    await writeFile(filepath, buffer)
-
-    // 📦 Extraer datos del cliente
+    // 📍 Extraer datos del cliente
     const userAgent = req.headers.get('user-agent') || ''
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'desconocida'
     const { device, browser, os } = parseUserAgent(userAgent)
@@ -64,25 +56,17 @@ export async function POST(req: NextRequest) {
       // si falla, dejamos "desconocida"
     }
 
-    // 📝 Registrar en el log
-    try {
-      await fetch('http://localhost:3000/api/log-action', {
-        method: 'POST',
-        body: JSON.stringify({
-          filename,
-          action: 'upload',
-          from: 'client',
-          to: 'pending',
-          device,
-          browser,
-          os,
-          location,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (err) {
-      console.error('Error al registrar log de subida:', err)
-    }
+    // 📝 Registrar en la tabla logs
+    await logAction({
+      filename,
+      action: 'upload',
+      from: 'client',
+      to: 'pending',
+      device,
+      browser,
+      os,
+      location,
+    })
 
     return new Response('Imagen subida correctamente y pendiente de aprobación', {
       status: 200,

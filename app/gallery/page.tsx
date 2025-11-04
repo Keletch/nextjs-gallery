@@ -136,17 +136,28 @@ function FloatingImage({ textureUrl, delay, onClick }: FloatingImageProps) {
 
 function SpeedUpdater() {
   const { gl, scene, camera } = useThree()
-
   useEffect(() => {
     gl.setAnimationLoop(() => {
       gl.render(scene, camera)
     })
   }, [gl, scene, camera])
-
   return null
 }
+
+async function fetchSignedUrl(folder: string, filename: string): Promise<string> {
+  const res = await fetch('/api/get-signed-url', {
+    method: 'POST',
+    body: JSON.stringify({ folder, filename }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  const json = await res.json()
+  if (!res.ok || !json.url) throw new Error(json.error || 'Error al obtener URL')
+  return json.url
+}
+
 export default function GalleryPage() {
   const [images, setImages] = useState<string[]>([])
+  const [urls, setUrls] = useState<Record<string, string>>({})
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [viewportHeight, setViewportHeight] = useState<number>(0)
   const [isClient, setIsClient] = useState(false)
@@ -164,14 +175,30 @@ export default function GalleryPage() {
       const resImages = await fetch('/api/approved-index')
       const list = await resImages.json()
       const validList = Array.isArray(list)
-        ? list.filter((f: unknown): f is string => typeof f === 'string' && f.trim() !== '')
+        ? list.filter((f: unknown): f is string =>
+            typeof f === 'string' &&
+            f.trim() !== '' &&
+            f !== '.emptyFolderPlaceholder' &&
+            /\.(png|jpg|jpeg|webp|gif)$/i.test(f)
+          )
         : []
       setImages(validList)
+
+      const entries = await Promise.all(
+        validList.map(async (filename) => {
+          try {
+            const url = await fetchSignedUrl('approved', filename)
+            return [filename, url]
+          } catch {
+            return [filename, '']
+          }
+        })
+      )
+      setUrls(Object.fromEntries(entries))
     }
 
     fetchGallery()
-
-    window.__gallerySpeed = 1
+        window.__gallerySpeed = 1
     let targetSpeed = 3
     let lastScroll = performance.now()
     let touchStartY: number | null = null
@@ -248,14 +275,18 @@ export default function GalleryPage() {
         <hemisphereLight intensity={0.5} groundColor={'#222'} />
         <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow color={'#ffddaa'} />
         <Suspense fallback={null}>
-          {images.map((filename, i) => (
-            <FloatingImage
-              key={`${filename}-${i}`}
-              textureUrl={`/approved/${filename}`}
-              delay={i * 2000}
-              onClick={(url) => setSelectedImage(url)}
-            />
-          ))}
+          {images.map((filename, i) => {
+            const textureUrl = urls[filename]
+            if (!textureUrl) return null
+            return (
+              <FloatingImage
+                key={`${filename}-${i}`}
+                textureUrl={textureUrl}
+                delay={i * 2000}
+                onClick={(url) => setSelectedImage(url)}
+              />
+            )
+          })}
         </Suspense>
       </Canvas>
 
