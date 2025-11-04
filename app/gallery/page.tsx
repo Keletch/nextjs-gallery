@@ -2,6 +2,9 @@
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import { TextureLoader, Mesh } from 'three'
 import { useEffect, useState, useRef, Suspense } from 'react'
+import * as THREE from 'three'
+import './RoundedMaterial'
+import './AberratedMaterial'
 
 interface FloatingImageProps {
   textureUrl: string
@@ -26,36 +29,66 @@ function FloatingImage({ textureUrl, delay, onClick }: FloatingImageProps) {
 
   const position = useRef<[number, number, number]>([initialX, initialY, initialZ])
   const scale = useRef<number>(0.5)
+  const opacity = useRef<number>(0)
   const activated = useRef<boolean>(false)
-  const activationTime = useRef<number>(performance.now() + delay)
-
+  const localTimer = useRef<number>(0)
   const [visible, setVisible] = useState<boolean>(false)
   const [paused, setPaused] = useState<boolean>(false)
-  const [hovered, setHovered] = useState<boolean>(false)
+  const hoveredRef = useRef<boolean>(false)
+  const aberration = useRef<number>(0)
+  const lastFrameTime = useRef<number>(performance.now())
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      lastFrameTime.current = performance.now()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   useFrame(() => {
     const now = performance.now()
-    if (!activated.current && now >= activationTime.current) {
+    let delta = now - lastFrameTime.current
+    lastFrameTime.current = now
+    if (delta > 50) delta = 16.67
+    if (!document.hidden) localTimer.current += delta
+
+    if (!activated.current && localTimer.current >= delay) {
       activated.current = true
       setVisible(true)
     }
 
-    if (!activated.current || !ref.current || paused) return
+    if (!ref.current) return
 
-    position.current[2] += 0.02 * window.__gallerySpeed
-    scale.current = Math.min(1.5, scale.current + 0.005 * window.__gallerySpeed)
+    const targetAberration = hoveredRef.current ? 1 : 0
+    aberration.current += (targetAberration - aberration.current) * 0.1
 
-    ref.current.position.set(...position.current)
-    ref.current.scale.setScalar(scale.current)
+    const targetOpacity = visible ? 1 : 0
+    opacity.current += (targetOpacity - opacity.current) * 0.1
+
+    const material = ref.current.material as any
+    if (material) {
+      material.intensity = aberration.current
+      material.opacity = opacity.current
+    }
+
+    if (activated.current && !paused) {
+      position.current[2] += 0.02 * window.__gallerySpeed
+      scale.current += (1.5 - scale.current) * 0.02 * window.__gallerySpeed
+      ref.current.position.set(...position.current)
+      ref.current.scale.setScalar(scale.current)
+    }
 
     if (position.current[2] > 6) {
       position.current[2] = -20 - Math.random() * 10
       position.current[0] = (Math.random() - 0.5) * viewport.width * 1.5
       position.current[1] = (Math.random() - 0.5) * viewport.height * 1.5
       scale.current = 0.5
-      activationTime.current = performance.now() + delay
+      opacity.current = 0
+      localTimer.current = 0
       activated.current = false
       setVisible(false)
+      aberration.current = 0
     }
   })
 
@@ -71,13 +104,13 @@ function FloatingImage({ textureUrl, delay, onClick }: FloatingImageProps) {
       onPointerOver={(e) => {
         e.stopPropagation()
         setPaused(true)
-        setHovered(true)
+        hoveredRef.current = true
         document.body.style.cursor = 'pointer'
       }}
       onPointerOut={(e) => {
         e.stopPropagation()
         setPaused(false)
-        setHovered(false)
+        hoveredRef.current = false
         document.body.style.cursor = 'default'
       }}
       onClick={(e) => {
@@ -86,17 +119,45 @@ function FloatingImage({ textureUrl, delay, onClick }: FloatingImageProps) {
       }}
     >
       <planeGeometry args={[width, height]} />
-      <meshStandardMaterial
+      <aberratedMaterial
+        transparent
+        ref={(mat: THREE.ShaderMaterial | null) => {
+          if (ref.current && mat) (ref.current.material as any) = mat
+        }}
         map={texture}
+        radius={0.15}
+        intensity={0}
+        opacity={0}
         toneMapped={false}
       />
     </mesh>
   )
 }
 
+function SpeedUpdater() {
+  const { gl, scene, camera } = useThree()
+
+  useEffect(() => {
+    gl.setAnimationLoop(() => {
+      gl.render(scene, camera)
+    })
+  }, [gl, scene, camera])
+
+  return null
+}
 export default function GalleryPage() {
   const [images, setImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [viewportHeight, setViewportHeight] = useState<number>(0)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    const updateHeight = () => setViewportHeight(window.innerHeight)
+    updateHeight()
+    window.addEventListener('resize', updateHeight)
+    return () => window.removeEventListener('resize', updateHeight)
+  }, [])
 
   useEffect(() => {
     const fetchGallery = async () => {
@@ -111,7 +172,7 @@ export default function GalleryPage() {
     fetchGallery()
 
     window.__gallerySpeed = 1
-    let targetSpeed = 1
+    let targetSpeed = 3
     let lastScroll = performance.now()
     let touchStartY: number | null = null
 
@@ -125,11 +186,14 @@ export default function GalleryPage() {
       touchStartY = e.touches[0].clientY
     }
 
+    const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent)
+    const touchMultiplier = isMobile ? 0.08 : 0.01
+
     const handleTouchMove = (e: TouchEvent) => {
       if (touchStartY !== null) {
         const currentY = e.touches[0].clientY
         const deltaY = touchStartY - currentY
-        targetSpeed = Math.min(5, Math.max(1, targetSpeed + deltaY * 0.01))
+        targetSpeed = Math.min(5, Math.max(1, targetSpeed + deltaY * touchMultiplier))
         lastScroll = performance.now()
         touchStartY = currentY
       }
@@ -144,19 +208,17 @@ export default function GalleryPage() {
     window.addEventListener('touchmove', handleTouchMove, { passive: true })
     window.addEventListener('touchend', handleTouchEnd, { passive: true })
 
-    const smoothSpeed = () => {
+    const interval = setInterval(() => {
       const now = performance.now()
       const timeSinceScroll = now - lastScroll
       if (timeSinceScroll > 300) {
         targetSpeed = Math.max(1, targetSpeed - 0.02)
       }
-      window.__gallerySpeed += (targetSpeed - window.__gallerySpeed) * 0.05
-      requestAnimationFrame(smoothSpeed)
-    }
-
-    smoothSpeed()
+      window.__gallerySpeed += (Math.pow(targetSpeed, 0.8) - window.__gallerySpeed) * 0.05
+    }, 1000 / 60)
 
     return () => {
+      clearInterval(interval)
       window.removeEventListener('wheel', handleScroll)
       window.removeEventListener('touchstart', handleTouchStart)
       window.removeEventListener('touchmove', handleTouchMove)
@@ -164,33 +226,39 @@ export default function GalleryPage() {
     }
   }, [])
 
+  if (!isClient) return null
+
   return (
     <div
       style={{
-        height: '100vh',
+        height: `${viewportHeight}px`,
         width: '100vw',
-        background: 'linear-gradient(180deg, #000 0%, #111 50%, #000 100%)', // 🌌 gradiente
+        background: 'linear-gradient(180deg, #000 0%, #111 50%, #000 100%)',
         position: 'relative',
       }}
     >
-      <Canvas camera={{ position: [0, 0, 5], fov: 60 }} shadows>
-        {/* 💡 luces más ricass */}
-        <ambientLight intensity={0.3} />
-        <hemisphereLight intensity={0.6} groundColor={'#222'} />
-        <directionalLight position={[5, 5, 5]} intensity={1} castShadow color={'#ffddaa'} />
+      <Canvas
+        camera={{ position: [0, 0, 5], fov: 60 }}
+        shadows
+        frameloop="always"
+        gl={{ powerPreference: 'high-performance' }}
+      >
+        <SpeedUpdater />
+        <ambientLight intensity={0.2} />
+        <hemisphereLight intensity={0.5} groundColor={'#222'} />
+        <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow color={'#ffddaa'} />
         <Suspense fallback={null}>
           {images.map((filename, i) => (
             <FloatingImage
               key={`${filename}-${i}`}
               textureUrl={`/approved/${filename}`}
-              delay={i * 1500}
+              delay={i * 2000}
               onClick={(url) => setSelectedImage(url)}
             />
           ))}
         </Suspense>
       </Canvas>
 
-      {/* Overlay fullscreen con animación */}
       {selectedImage && (
         <div
           onClick={() => setSelectedImage(null)}
@@ -231,7 +299,7 @@ export default function GalleryPage() {
               from {
                 transform: scale(0.8);
               }
-                            to {
+              to {
                 transform: scale(1);
               }
             }
@@ -241,4 +309,3 @@ export default function GalleryPage() {
     </div>
   )
 }
-               
