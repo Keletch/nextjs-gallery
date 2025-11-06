@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyModerator } from '@/lib/auth-check'
 import { deleteFile, logAction } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
-  const { filename, folder } = await req.json()
-
-  if (!filename || !folder) {
-    return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
-  }
-
   try {
+    const { authorized, reason } = await verifyModerator()
+
+    if (!authorized) {
+      return NextResponse.json({ error: reason }, { status: 401 })
+    }
+
+    const { filename, folder } = await req.json()
+
+    if (!filename || !folder) {
+      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+    }
+
     await deleteFile(filename, folder)
 
     await logAction({
@@ -24,7 +31,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('Error al eliminar imagen:', err)
     return NextResponse.json({ error: 'No se pudo eliminar la imagen' }, { status: 500 })
   }
 }
