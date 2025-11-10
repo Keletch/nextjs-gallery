@@ -4,7 +4,18 @@ import { logAction } from '@/lib/supabase'
 export async function POST(req: NextRequest) {
   const entry = await req.json()
 
-  const required = ['filename', 'action', 'from', 'to', 'device', 'browser', 'os', 'location']
+  const required = [
+    'filename',
+    'action',
+    'from',
+    'to',
+    'device',
+    'browser',
+    'os',
+    'location',
+    'evento',
+  ]
+
   const missing = required.filter((key) => !entry[key])
 
   if (missing.length > 0) {

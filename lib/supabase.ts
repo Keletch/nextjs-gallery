@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { verifyModerator } from './auth-check'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,10 +8,10 @@ const supabase = createClient(
 
 const BUCKET = 'nextjsGallery'
 
+// 📤 Subir archivo a carpeta específica
 export async function uploadToBucket(file: File, folder: string): Promise<string> {
   const rawName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '')
-  const timestamp = Date.now()
-  const filename = `${timestamp}-${rawName}`
+  const filename = `${rawName}`
   const path = `${folder}/${filename}`
 
   const bytes = await file.arrayBuffer()
@@ -23,6 +24,7 @@ export async function uploadToBucket(file: File, folder: string): Promise<string
   return filename
 }
 
+// 🔁 Mover archivo entre carpetas
 export async function moveFile(filename: string, from: string, to: string): Promise<void> {
   const source = `${from}/${filename}`
   const destination = `${to}/${filename}`
@@ -31,19 +33,47 @@ export async function moveFile(filename: string, from: string, to: string): Prom
   if (error) throw new Error(`Error al mover: ${error.message}`)
 }
 
+// ❌ Eliminar archivo
 export async function deleteFile(filename: string, folder: string): Promise<void> {
   const path = `${folder}/${filename}`
   const { error } = await supabase.storage.from(BUCKET).remove([path])
   if (error) throw new Error(`Error al eliminar: ${error.message}`)
 }
 
+// 📁 Listar archivos en carpeta exacta
 export async function listFiles(folder: string): Promise<string[]> {
-  const { data, error } = await supabase.storage.from(BUCKET).list(folder)
-  if (error) throw new Error(`Error al listar: ${error.message}`)
-  return data?.map(f => f.name) || []
+  console.log(`[listFiles] 📁 Listando carpeta: ${folder}`)
+  const { data, error } = await supabase.storage.from(BUCKET).list(folder, { limit: 1000 })
+
+  if (error) {
+    console.error(`[listFiles] ❌ Error al listar ${folder}:`, error)
+    return []
+  }
+
+  const files = data?.map(f => f.name) ?? []
+  console.log(`[listFiles] ✅ Archivos encontrados en ${folder}:`, files)
+  return files
 }
 
-type LogEntry = {
+// 📂 Listar carpetas raíz (eventos)
+export async function listEventFolders(): Promise<string[]> {
+  const { data, error } = await supabase.storage.from(BUCKET).list('', { limit: 100 })
+
+  if (error || !data) {
+    console.error('[listEventFolders] ❌ Error al listar carpetas raíz:', error)
+    return []
+  }
+
+  const folders = data
+    .filter((item) => !item.name.includes('.') && !item.metadata)
+    .map((item) => item.name)
+
+  console.log('[listEventFolders] ✅ Carpetas encontradas:', folders)
+  return folders
+}
+
+// 📝 Guardar log de acción
+export type LogEntry = {
   filename: string
   action: string
   from: string
@@ -52,15 +82,34 @@ type LogEntry = {
   browser: string
   os: string
   location: string
+  evento: string
+  moderator?: string
 }
 
 export async function logAction(entry: LogEntry): Promise<void> {
+  let moderator = 'cliente'
+
+  try {
+    const { authorized, user } = await verifyModerator()
+    if (authorized && user?.email) {
+      moderator = user.email
+    }
+  } catch {
+    // No hay sesión activa, se mantiene como 'cliente'
+  }
+
   const { error } = await supabase.from('logs').insert([
-    { ...entry, timestamp: new Date().toISOString() },
+    {
+      ...entry,
+      moderator,
+      timestamp: new Date().toISOString(),
+    },
   ])
+
   if (error) throw new Error(`Error al guardar log: ${error.message}`)
 }
 
+// 📜 Obtener logs ordenados
 export async function getLogs(): Promise<LogEntry[]> {
   const { data, error } = await supabase
     .from('logs')
@@ -71,6 +120,7 @@ export async function getLogs(): Promise<LogEntry[]> {
   return data || []
 }
 
+// 🔐 Generar URL firmada para descarga segura
 export async function getSignedUrl(folder: string, filename: string, expiresIn = 3600): Promise<string> {
   const { data, error } = await supabase.storage
     .from(BUCKET)
@@ -79,3 +129,5 @@ export async function getSignedUrl(folder: string, filename: string, expiresIn =
   if (error || !data?.signedUrl) throw new Error(`Error al generar URL firmada: ${error?.message}`)
   return data.signedUrl
 }
+
+export { supabase }

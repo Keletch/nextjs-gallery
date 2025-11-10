@@ -1,12 +1,24 @@
 import { NextResponse } from 'next/server'
 import { listFiles } from '@/lib/supabase'
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const evento = searchParams.get('evento')
+
+  if (!evento) {
+    return NextResponse.json([], { status: 400 })
+  }
+
+  const folder = `${evento}/rejected`
+
   try {
-    const files = await listFiles('rejected')
-    return NextResponse.json(files)
+    const files = await listFiles(folder)
+
+    // 🧹 Excluir dummy.webp
+    const visibles = files.filter(file => file !== 'dummy.webp')
+
+    return NextResponse.json(visibles)
   } catch (err) {
-    console.error('Error al listar carpeta rejected:', err)
     return NextResponse.json([], { status: 500 })
   }
 }

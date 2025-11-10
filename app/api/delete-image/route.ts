@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
-import { deleteFile, logAction } from '@/lib/supabase'
+import { deleteFile, logAction, supabase } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,27 +10,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: reason }, { status: 401 })
     }
 
-    const { filename, folder } = await req.json()
+    const { filename, evento } = await req.json()
 
-    if (!filename || !folder) {
-      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+    if (!filename || !evento) {
+      return NextResponse.json({ error: 'Faltan parámetros: filename o evento' }, { status: 400 })
     }
 
-    await deleteFile(filename, folder)
+    const from = `${evento}/rejected`
 
+    // 🧱 Eliminar archivo de storage
+    await deleteFile(filename, from)
+
+    // 🔍 Extraer hash desde filename
+    const hash = filename.replace(/\.webp$/, '')
+
+    // 🧽 Eliminar registro en imageInfo
+    const { error: deleteError } = await supabase
+      .from('imageInfo')
+      .delete()
+      .eq('imghash', hash)
+
+    if (deleteError) {
+      console.error('[delete-image] ❌ Error al eliminar registro en imageInfo:', deleteError)
+      return NextResponse.json({ error: 'No se pudo eliminar el registro en base de datos' }, { status: 500 })
+    }
+
+    // 🧮 Registrar acción en logs
     await logAction({
       filename,
-      action: 'delete',
-      from: folder,
-      to: 'none',
+      action: 'delete-image',
+      from,
+      to: 'n/a',
       device: 'server',
       browser: 'n/a',
       os: 'n/a',
       location: 'n/a',
+      evento,
     })
 
     return NextResponse.json({ success: true })
   } catch (err) {
+    console.error('[delete-image] ❌ Error al eliminar imagen:', err)
     return NextResponse.json({ error: 'No se pudo eliminar la imagen' }, { status: 500 })
   }
 }

@@ -10,23 +10,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: reason }, { status: 401 })
     }
 
-    const { filename } = await req.json()
+    const { filename, evento } = await req.json()
 
-    if (!filename) {
-      return NextResponse.json({ error: 'Falta el nombre del archivo' }, { status: 400 })
+    if (!filename || !evento) {
+      return NextResponse.json({ error: 'Faltan parámetros: filename o evento' }, { status: 400 })
     }
 
-    await moveFile(filename, 'pending', 'rejected')
+    const from = `${evento}/pending`
+    const to = `${evento}/rejected`
+
+    await moveFile(filename, from, to)
 
     await logAction({
       filename,
       action: 'reject',
-      from: 'pending',
-      to: 'rejected',
+      from,
+      to,
       device: 'server',
       browser: 'n/a',
       os: 'n/a',
       location: 'n/a',
+      evento,
     })
 
     return NextResponse.json({ success: true })

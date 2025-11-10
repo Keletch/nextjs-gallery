@@ -10,27 +10,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: reason }, { status: 401 })
     }
 
-    const { filename, from } = await req.json()
+    const body = await req.json()
+    const { filename, evento } = body
 
-    if (!filename || !from) {
-      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+    if (!filename || !evento) {
+      return NextResponse.json({ error: 'Faltan parámetros: filename o evento' }, { status: 400 })
     }
 
-    await moveFile(filename, from, 'approved')
+    const from = `${evento}/pending`
+    const to = `${evento}/approved`
+
+    await moveFile(filename, from, to)
 
     await logAction({
       filename,
       action: 'move-to-approved',
       from,
-      to: 'approved',
+      to,
       device: 'server',
       browser: 'n/a',
       os: 'n/a',
       location: 'n/a',
+      evento,
     })
 
     return NextResponse.json({ success: true })
   } catch (err) {
+    console.error('[approved] ❌ Error al mover imagen:', err)
     return NextResponse.json({ error: 'No se pudo mover la imagen' }, { status: 500 })
   }
 }
