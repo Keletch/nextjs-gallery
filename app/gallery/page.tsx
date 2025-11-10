@@ -11,8 +11,8 @@ export async function generateMetadata({ searchParams }: { searchParams: { open?
     .eq('imghash', hash)
     .maybeSingle()
 
-  const eventoRaw = data?.evento || 'Obra'
-  const description = data?.description || 'Imagen curatorial'
+  const eventoRaw = data?.evento || 'Evento'
+  const description = data?.description || 'Descripcion'
 
   const { data: eventoData } = await supabaseServer
     .from('events')
@@ -31,7 +31,7 @@ export async function generateMetadata({ searchParams }: { searchParams: { open?
       title: `Evento: ${eventoNombre}`,
       description,
       images: [imageUrl],
-      url: `http://localhost:3000/gallery?open=${hash}`,
+      url: `http://galeria.chu.mx/gallery?open=${hash}`,
       type: 'website',
     },
     twitter: {

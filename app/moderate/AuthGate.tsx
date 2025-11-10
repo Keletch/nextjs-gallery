@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react'
 import { supabaseClient } from '../../lib/supabase-client'
 import type { Session } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const getSession = async () => {
@@ -46,14 +48,20 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
         <button
           onClick={async () => {
             if (window.confirm('¿Seguro que quieres cerrar sesión?')) await handleLogout()
           }}
-          style={{ backgroundColor: 'red', color: 'white', padding: '0.5rem 1rem' }}
+          style={{ backgroundColor: 'red', color: 'white', padding: '0.5rem 1rem', cursor: 'pointer' }}
         >
           Logout
+        </button>
+        <button
+          onClick={() => router.push('/gallery')}
+          style={{ backgroundColor: '#333', color: 'white', padding: '0.5rem 1rem', cursor: 'pointer'}}
+        >
+          Ir a galería
         </button>
       </div>
       {children}

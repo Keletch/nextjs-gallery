@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import GalleryCanvas from './GalleryCanvas'
 import FullscreenViewer from './FullscreenViewer'
 import useGallerySpeed from './UseGallerySpeed'
+import { useRouter } from 'next/navigation'
 
 interface Evento {
   id: string
@@ -24,9 +25,9 @@ export default function GalleryClient() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [viewportHeight, setViewportHeight] = useState<number>(0)
 
+  const router = useRouter()
   useGallerySpeed()
 
-  // ✅ Detectar hash desde la URL al montar
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const hash = params.get('open')
@@ -117,28 +118,40 @@ export default function GalleryClient() {
         position: 'relative',
       }}
     >
-      <select
-        value={selectedEvent}
-        onChange={e => setSelectedEvent(e.target.value)}
-        style={{
-          position: 'absolute',
-          top: 20,
-          left: 20,
-          zIndex: 10,
-          padding: '0.5rem',
-          background: '#111',
-          color: '#fff',
-          border: '1px solid #444',
-          borderRadius: '4px',
-        }}
-      >
-        <option value="">Todos los eventos</option>
-        {eventos.map(ev => (
-          <option key={ev.id} value={ev.ruta}>
-            {ev.nombre}
-          </option>
-        ))}
-      </select>
+      <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', gap: '1rem' }}>
+        <select
+          value={selectedEvent}
+          onChange={e => setSelectedEvent(e.target.value)}
+          style={{
+            padding: '0.5rem',
+            background: '#111',
+            color: '#fff',
+            border: '1px solid #444',
+            borderRadius: '4px',
+          }}
+        >
+          <option value="">Todos los eventos</option>
+          {eventos.map(ev => (
+            <option key={ev.id} value={ev.ruta}>
+              {ev.nombre}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => router.push('/upload')}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#222',
+            color: '#fff',
+            border: '1px solid #444',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+          }}
+        >
+          Subir imagen
+        </button>
+      </div>
 
       <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} />
       {selectedImage && (

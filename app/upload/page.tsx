@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { useRouter } from 'next/navigation'
 
 const MAX_SIZE_MB = 5
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -13,6 +14,7 @@ export default function UploadPage() {
   const [description, setDescription] = useState<string>('')
   const [status, setStatus] = useState<string>('')
 
+  const router = useRouter()
   const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(window.navigator.userAgent)
 
   useEffect(() => {
@@ -95,95 +97,122 @@ export default function UploadPage() {
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '600px', margin: 'auto' }}>
-      <h2>Sube tu imagen</h2>
-
-      <label>Selecciona evento:</label>
-      <select
-        value={selectedEvent}
-        onChange={e => setSelectedEvent(e.target.value)}
-        style={{ marginBottom: '1rem', padding: '0.5rem', width: '100%' }}
+    <div style={{ position: 'relative', minHeight: '100vh', width: '100vw' }}>
+      <button
+        onClick={() => router.push('/gallery')}
+        style={{
+          position: 'fixed',
+          top: '1rem',
+          left: '1rem',
+          padding: '0.5rem 1rem',
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #444',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          zIndex: 1000,
+        }}
       >
-        <option value="">-- Selecciona --</option>
-        {events.map(ev => (
-          <option key={ev.id} value={ev.id}>
-            {ev.nombre}
-          </option>
-        ))}
-      </select>
+        Ir a galería
+      </button>
 
-      {selectedEvent && (
-        <>
-          <div
-            {...getRootProps()}
-            style={{
-              border: '2px dashed #888',
-              padding: '2rem',
-              textAlign: 'center',
-              background: isDragActive ? '#eee' : '#fafafa',
-              cursor: 'pointer',
-            }}
-          >
-            <input {...getInputProps()} />
-            <p>{isDragActive ? 'Suelta la imagen aquí...' : 'Arrastra una imagen o haz clic para seleccionar'}</p>
-          </div>
+      <div
+        style={{
+          padding: '2rem',
+          fontFamily: 'sans-serif',
+          maxWidth: '600px',
+          margin: 'auto',
+        }}
+      >
+        <h2>Sube tu imagen</h2>
 
-          {isMobile && (
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              <span style={{ fontWeight: 'bold' }}>— o —</span>
-              <br />
-              <label
-                htmlFor="cameraInput"
-                style={{
-                  display: 'inline-block',
-                  marginTop: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  background: '#0070f3',
-                  color: '#fff',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Tomar foto
-              </label>
-              <input
-                id="cameraInput"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                style={{ display: 'none' }}
-                onChange={handleCameraCapture}
-              />
-            </div>
-          )}
+        <label>Selecciona evento:</label>
+        <select
+          value={selectedEvent}
+          onChange={e => setSelectedEvent(e.target.value)}
+          style={{ marginBottom: '1rem', padding: '0.5rem', width: '100%' }}
+        >
+          <option value="">-- Selecciona --</option>
+          {events.map(ev => (
+            <option key={ev.id} value={ev.id}>
+              {ev.nombre}
+            </option>
+          ))}
+        </select>
 
-          {preview && (
-            <>
-              <div style={{ marginTop: '1rem' }}>
-                <img src={preview} alt="Vista previa" style={{ maxWidth: '100%', maxHeight: '300px' }} />
-              </div>
-
-              <textarea
-                placeholder="Descripción (opcional)"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                style={{ marginTop: '1rem', width: '100%', padding: '0.5rem' }}
-              />
-            </>
-          )}
-
-          {file && (
-            <button
-              onClick={handleUpload}
-              style={{ marginTop: '1rem', padding: '0.5rem 1rem' }}
+        {selectedEvent && (
+          <>
+            <div
+              {...getRootProps()}
+              style={{
+                border: '2px dashed #888',
+                padding: '2rem',
+                textAlign: 'center',
+                background: isDragActive ? '#eee' : '#fafafa',
+                cursor: 'pointer',
+              }}
             >
-              Subir
-            </button>
-          )}
-        </>
-      )}
+              <input {...getInputProps()} />
+              <p>{isDragActive ? 'Suelta la imagen aquí...' : 'Arrastra una imagen o haz clic para seleccionar'}</p>
+            </div>
 
-      {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
+            {isMobile && (
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <span style={{ fontWeight: 'bold' }}>— o —</span>
+                <br />
+                <label
+                  htmlFor="cameraInput"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    background: '#0070f3',
+                    color: '#fff',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Tomar foto
+                </label>
+                <input
+                  id="cameraInput"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={handleCameraCapture}
+                />
+              </div>
+            )}
+
+            {preview && (
+              <>
+                <div style={{ marginTop: '1rem' }}>
+                  <img src={preview} alt="Vista previa" style={{ maxWidth: '100%', maxHeight: '300px' }} />
+                </div>
+
+                <textarea
+                  placeholder="Descripción (opcional)"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  style={{ marginTop: '1rem', width: '100%', padding: '0.5rem' }}
+                />
+              </>
+            )}
+
+            {file && (
+              <button
+                onClick={handleUpload}
+                style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
+              >
+                Subir
+              </button>
+            )}
+          </>
+        )}
+
+        {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
+      </div>
     </div>
   )
 }
