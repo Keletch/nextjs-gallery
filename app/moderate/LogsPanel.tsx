@@ -1,4 +1,5 @@
 'use client'
+import styles from './ModeratePage.module.css'
 
 export default function LogsPanel({
   logs,
@@ -10,17 +11,15 @@ export default function LogsPanel({
   setLogView: (view: 'moderation' | 'uploads') => void
 }) {
   return (
-    <div style={{ marginTop: '2rem' }}>
+    <div className={styles.panel}>
       <h3>Historial de Logs</h3>
-      <div style={{ marginBottom: '1rem' }}>
-        <button onClick={() => setLogView('moderation')} style={{ marginRight: '1rem' }}>
-          Moderación
-        </button>
+      <div className={styles.logToggle}>
+        <button onClick={() => setLogView('moderation')}>Moderación</button>
         <button onClick={() => setLogView('uploads')}>Subidas</button>
       </div>
 
       {logView === 'moderation' && (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className={styles.table}>
           <thead>
             <tr>
               <th>Archivo</th>
@@ -32,7 +31,7 @@ export default function LogsPanel({
           </thead>
           <tbody>
             {logs
-              .filter((log) => log.action !== 'upload-image') // ✅ corregido
+              .filter((log) => log.action !== 'upload-image')
               .map((log, i) => (
                 <tr key={i}>
                   <td>{log.filename}</td>
@@ -47,7 +46,7 @@ export default function LogsPanel({
       )}
 
       {logView === 'uploads' && (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className={styles.table}>
           <thead>
             <tr>
               <th>Archivo</th>
@@ -60,7 +59,7 @@ export default function LogsPanel({
           </thead>
           <tbody>
             {logs
-              .filter((log) => log.action === 'upload-image') // ✅ corregido
+              .filter((log) => log.action === 'upload-image')
               .map((log, i) => (
                 <tr key={i}>
                   <td>{log.filename}</td>

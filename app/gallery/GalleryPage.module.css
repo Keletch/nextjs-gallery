@@ -1,0 +1,169 @@
+:root {
+  --bg-main: #0f0f0f;
+  --bg-panel: rgba(26, 26, 26, 0.6);
+  --text-main: #eaeaea;
+  --border: #444;
+  --accent: #ffffff;
+  --font-main: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.container {
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  font-family: var(--font-main);
+  color: var(--text-main);
+  overflow: hidden;
+  z-index: 0;
+}
+
+.topBar {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 10;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.select {
+  padding: 0.6rem 1rem;
+  background-color: rgba(15, 15, 15, 0.8);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+}
+
+.button {
+  padding: 0.6rem 1.2rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: var(--font-main);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.button:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  transform: scale(1.03);
+}
+
+.viewerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: zoom-out;
+  animation: fadeIn 0.3s ease;
+  padding: 2rem;
+  color: var(--text-main);
+}
+
+.viewerImage {
+  max-width: 90%;
+  max-height: 80%;
+  object-fit: contain;
+  border-radius: 12px;
+  transform: scale(1);
+  animation: zoomIn 0.3s ease;
+}
+
+.viewerInfo {
+  margin-top: 1.5rem;
+  text-align: center;
+  max-width: 80%;
+}
+
+.viewerInfo p {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.viewerInfo p strong {
+  font-weight: 600;
+}
+
+.viewerButtons {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.viewerButtons button {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.viewerButtons button:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  transform: scale(1.03);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.8);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ✅ Logo SHIFT abajo a la derecha con animación */
+@keyframes fadeInLogo {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+}
+
+.logo {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: min(120px, 20vw);
+  height: auto;
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 10;
+  animation: fadeInLogo 1.2s ease-out forwards;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+  opacity: 1;
+}

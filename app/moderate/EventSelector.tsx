@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import styles from './ModeratePage.module.css'
 
 type Event = {
   id: string
@@ -34,13 +35,13 @@ export default function EventSelector({
   }, [])
 
   return (
-    <div style={{ marginBottom: '1rem' }}>
+    <div className={styles.panel}>
       <label>Selecciona evento:</label>
       <select
         value={selected}
         onChange={e => onChange(e.target.value)}
         disabled={loading}
-        style={{ marginLeft: '0.5rem', padding: '0.5rem' }}
+        className={styles.select}
       >
         <option value="">-- Selecciona --</option>
         {eventos.map(ev => (

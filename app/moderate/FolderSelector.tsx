@@ -1,4 +1,6 @@
 'use client'
+import styles from './ModeratePage.module.css'
+
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 
 export default function FolderSelector({
@@ -16,19 +18,14 @@ export default function FolderSelector({
   ]
 
   return (
-    <div style={{ marginBottom: '1rem' }}>
+    <div className={styles.folderSelector}>
       {folders.map(({ label, value }) => (
         <button
           key={value}
           onClick={() => onChange(value)}
-          style={{
-            marginRight: '1rem',
-            padding: '0.5rem 1rem',
-            backgroundColor: selected === value ? '#333' : '#eee',
-            color: selected === value ? '#fff' : '#000',
-            border: 'none',
-            cursor: 'pointer',
-          }}
+          className={`${styles.folderButton} ${
+            selected === value ? styles.folderActive : styles.folderInactive
+          }`}
         >
           {label}
         </button>

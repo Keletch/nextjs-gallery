@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import styles from './ModeratePage.module.css'
 
 export default function CreateEventPanel({
   onCreated,
@@ -49,11 +50,15 @@ export default function CreateEventPanel({
   }
 
   return (
-    <div style={{ marginBottom: '1rem' }}>
-      <button onClick={() => setShowPopup(true)}>Crear evento</button>
+    <div className={styles.panel}>
+      <div className={styles.createEventTrigger}>
+        <button onClick={() => setShowPopup(true)} className={styles.button}>
+          Crear evento
+        </button>
+      </div>
 
       {showPopup && (
-        <div style={{ border: '1px solid #ccc', padding: '1rem', marginTop: '1rem' }}>
+        <div className={styles.panel}>
           <h4>Nuevo evento</h4>
           <label>Nombre:</label>
           <input
@@ -61,30 +66,30 @@ export default function CreateEventPanel({
             value={nombre}
             onChange={e => setNombre(e.target.value)}
             placeholder="Shift 2025"
-            style={{ marginLeft: '0.5rem' }}
+            className={styles.input}
           />
-          <br />
           <label>Ruta:</label>
           <input
             type="text"
             value={ruta}
             onChange={e => setRuta(e.target.value)}
             placeholder="shift2025"
-            style={{ marginLeft: '0.5rem', marginTop: '0.5rem' }}
+            className={styles.input}
           />
-          <br />
           {confirming && (
-            <p style={{ marginTop: '1rem' }}>
+            <p className={styles.status}>
               ¿Confirmas crear el evento <strong>{nombre}</strong> con ruta <strong>{ruta}</strong>?
             </p>
           )}
-          <button onClick={handleCreate} style={{ marginTop: '1rem' }}>
-            {confirming ? 'Confirmar creación' : 'Crear'}
-          </button>
-          <button onClick={resetForm} style={{ marginLeft: '0.5rem' }}>
-            Cancelar
-          </button>
-          {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
+          <div className={styles.buttonRow}>
+            <button onClick={handleCreate} className={styles.button}>
+              {confirming ? 'Confirmar creación' : 'Crear'}
+            </button>
+            <button onClick={resetForm} className={styles.button}>
+              Cancelar
+            </button>
+          </div>
+          {status && <p className={styles.status}>{status}</p>}
         </div>
       )}
     </div>

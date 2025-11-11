@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabaseClient } from '@/lib/supabase-client'
+import styles from './GalleryPage.module.css'
 
 interface FullscreenViewerProps {
   hash: string
@@ -88,50 +89,19 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.9)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        cursor: 'zoom-out',
-        animation: 'fadeIn 0.3s ease',
-        padding: '2rem',
-        color: '#fff',
-      }}
-    >
+    <div className={styles.viewerOverlay} onClick={onClose}>
       {!imageUrl && hashValid && (
         <p style={{ color: '#aaa', marginBottom: '1rem' }}>Cargando imagen...</p>
       )}
       {imageUrl && (
-        <img
-          src={imageUrl}
-          alt="fullscreen"
-          style={{
-            maxWidth: '90%',
-            maxHeight: '80%',
-            objectFit: 'contain',
-            borderRadius: '12px',
-            transform: 'scale(1)',
-            animation: 'zoomIn 0.3s ease',
-          }}
-        />
+        <img src={imageUrl} alt="fullscreen" className={styles.viewerImage} />
       )}
-      <div style={{ marginTop: '1.5rem', textAlign: 'center', maxWidth: '80%' }}>
+      <div className={styles.viewerInfo}>
         {info ? (
           <>
-            <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-              <strong>Evento:</strong> {info.evento}
-            </p>
-            <p style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>
-              <strong>Descripción:</strong> {info.description}
-            </p>
-            <p style={{ fontSize: '0.9rem', opacity: 0.7 }}>
+            <p><strong>Evento:</strong> {info.evento}</p>
+            <p><strong>Descripción:</strong> {info.description}</p>
+            <p style={{ opacity: 0.7 }}>
               <strong>Subido el:</strong>{' '}
               {new Date(info.created_at).toLocaleDateString('es-MX', {
                 year: 'numeric',
@@ -145,43 +115,13 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
         ) : (
           <p style={{ color: '#aaa' }}>No se encontró información para esta imagen.</p>
         )}
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className={styles.viewerButtons}>
           <button onClick={shareOnX}>Compartir en X</button>
           <button onClick={shareOnWhatsApp}>Compartir en WhatsApp</button>
           <button onClick={copyLink}>Copiar enlace</button>
           <button onClick={downloadImage}>Descargar imagen</button>
         </div>
       </div>
-      <style jsx global>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        @keyframes zoomIn {
-          from {
-            transform: scale(0.8);
-          }
-          to {
-            transform: scale(1);
-          }
-        }
-        button {
-          background: #222;
-          color: #fff;
-          border: 1px solid #555;
-          padding: 0.5rem 1rem;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 0.9rem;
-        }
-        button:hover {
-          background: #444;
-        }
-      `}</style>
     </div>
   )
 }

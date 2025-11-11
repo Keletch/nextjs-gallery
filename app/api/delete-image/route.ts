@@ -16,15 +16,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faltan parámetros: filename o evento' }, { status: 400 })
     }
 
-    const from = `${evento}/rejected`
-
-    // 🧱 Eliminar archivo de storage
-    await deleteFile(filename, from)
-
-    // 🔍 Extraer hash desde filename
     const hash = filename.replace(/\.webp$/, '')
 
-    // 🧽 Eliminar registro en imageInfo
+    await deleteFile(filename, `${evento}/rejected`)
+
+    await deleteFile(`${hash}.webp`, `${evento}/approved`)
+
+    await deleteFile(`thumb_${hash}.webp`, `${evento}/thumbnails`)
+
     const { error: deleteError } = await supabase
       .from('imageInfo')
       .delete()
@@ -35,11 +34,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No se pudo eliminar el registro en base de datos' }, { status: 500 })
     }
 
-    // 🧮 Registrar acción en logs
     await logAction({
       filename,
       action: 'delete-image',
-      from,
+      from: `${evento}`,
       to: 'n/a',
       device: 'server',
       browser: 'n/a',

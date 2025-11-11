@@ -1,10 +1,11 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import GalleryCanvas from './GalleryCanvas'
 import FullscreenViewer from './FullscreenViewer'
 import useGallerySpeed from './UseGallerySpeed'
 import { useRouter } from 'next/navigation'
+import styles from './GalleryPage.module.css'
+import BackgroundCanvas from './BackgroundCanvas'
 
 interface Evento {
   id: string
@@ -110,53 +111,35 @@ export default function GalleryClient() {
   }, [selectedEvent])
 
   return (
-    <div
-      style={{
-        height: `${viewportHeight}px`,
-        width: '100vw',
-        background: 'linear-gradient(180deg, #000 0%, #111 50%, #000 100%)',
-        position: 'relative',
-      }}
-    >
-      <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', gap: '1rem' }}>
-        <select
-          value={selectedEvent}
-          onChange={e => setSelectedEvent(e.target.value)}
-          style={{
-            padding: '0.5rem',
-            background: '#111',
-            color: '#fff',
-            border: '1px solid #444',
-            borderRadius: '4px',
-          }}
-        >
-          <option value="">Todos los eventos</option>
-          {eventos.map(ev => (
-            <option key={ev.id} value={ev.ruta}>
-              {ev.nombre}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => router.push('/upload')}
-          style={{
-            padding: '0.5rem 1rem',
-            background: '#222',
-            color: '#fff',
-            border: '1px solid #444',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-          }}
-        >
-          Subir imagen
-        </button>
-      </div>
+    <>
+      <BackgroundCanvas selectedEvent={selectedEvent} />
+      <div className={styles.container} style={{ height: `${viewportHeight}px` }}>
+        <div className={styles.topBar}>
+          <select
+            value={selectedEvent}
+            onChange={(e) => setSelectedEvent(e.target.value)}
+            className={styles.select}
+          >
+            <option value="">Todos los eventos</option>
+            {eventos.map((ev) => (
+              <option key={ev.id} value={ev.ruta}>
+                {ev.nombre}
+              </option>
+            ))}
+          </select>
+          <button onClick={() => router.push('/upload')} className={styles.button}>
+            Subir imagen
+          </button>
+        </div>
 
-      <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} />
-      {selectedImage && (
-        <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
-      )}
-    </div>
+        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} />
+        {selectedImage && (
+          <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
+        )}
+
+        {/* ✅ Logo SHIFT abajo a la derecha */}
+        <img src="/SHIFT.png" alt="Galería SHIFT" className={styles.logo} />
+      </div>
+    </>
   )
 }

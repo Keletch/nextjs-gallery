@@ -7,6 +7,7 @@ import ModerationPanel from './ModerationPanel'
 import LogsPanel from './LogsPanel'
 import CreateEventPanel from './CreateEventPanel'
 import { useModeration } from './UseModeration'
+import styles from './ModeratePage.module.css'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 
@@ -90,17 +91,27 @@ export default function ModeratePage() {
 
   return (
     <AuthGate>
-      <h2>Panel de Moderación</h2>
-      <CreateEventPanel onCreated={(ruta) => setEvento(ruta)} />
-      <EventSelector selected={evento} onChange={setEvento} />
-      <FolderSelector selected={folder} onChange={setFolder} />
-      {status && <p>{status}</p>}
+      <div className={styles.container}>
+        <h1 className={styles.heading}>Panel de Moderación</h1>
 
-      {folder !== 'logs' && evento && (
-        <ModerationPanel folder={folder} images={images} urls={urls} actions={getActions()} />
-      )}
+        <CreateEventPanel onCreated={(ruta) => setEvento(ruta)} />
 
-      {folder === 'logs' && <LogsPanel logs={logs} logView={logView} setLogView={setLogView} />}
+        <div className={styles.panel}>
+          <EventSelector selected={evento} onChange={setEvento} />
+        </div>
+
+        <FolderSelector selected={folder} onChange={setFolder} />
+
+        {status && <p className={styles.status}>{status}</p>}
+
+        {folder !== 'logs' && evento && (
+          <ModerationPanel folder={folder} images={images} urls={urls} actions={getActions()} />
+        )}
+
+        {folder === 'logs' && (
+          <LogsPanel logs={logs} logView={logView} setLogView={setLogView} />
+        )}
+      </div>
     </AuthGate>
   )
 }

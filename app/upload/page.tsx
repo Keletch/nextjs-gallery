@@ -2,8 +2,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useRouter } from 'next/navigation'
+import styles from './UploadPage.module.css'
 
-const MAX_SIZE_MB = 5
+const MAX_SIZE_MB = 50
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export default function UploadPage() {
@@ -13,6 +14,9 @@ export default function UploadPage() {
   const [preview, setPreview] = useState<string | null>(null)
   const [description, setDescription] = useState<string>('')
   const [status, setStatus] = useState<string>('')
+  const [progress, setProgress] = useState<'idle' | 'processing' | 'uploading' | 'done' | 'error'>('idle')
+  const [progressPercent, setProgressPercent] = useState<number>(0)
+  const [descriptionError, setDescriptionError] = useState<boolean>(false)
 
   const router = useRouter()
   const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(window.navigator.userAgent)
@@ -34,7 +38,7 @@ export default function UploadPage() {
     }
 
     if (selected.size > MAX_SIZE_MB * 1024 * 1024) {
-      setStatus('Archivo demasiado grande (máx 5MB)')
+      setStatus('Archivo demasiado grande (máx 50MB)')
       return
     }
 
@@ -53,7 +57,7 @@ export default function UploadPage() {
     }
 
     if (captured.size > MAX_SIZE_MB * 1024 * 1024) {
-      setStatus('Archivo demasiado grande (máx 5MB)')
+      setStatus('Archivo demasiado grande (máx 50MB)')
       return
     }
 
@@ -70,67 +74,66 @@ export default function UploadPage() {
   })
 
   const handleUpload = async () => {
-    if (!file || !selectedEvent) return
+    if (!file || !selectedEvent || !description.trim()) {
+      setDescriptionError(true)
+      return
+    }
+
+    setProgress('processing')
+    setProgressPercent(25)
+    await new Promise(r => setTimeout(r, 500))
 
     const formData = new FormData()
     formData.append('image', file)
     formData.append('event', selectedEvent)
-    if (description.trim()) {
-      formData.append('description', description.trim())
-    }
+    formData.append('description', description.trim())
 
     try {
+      setProgress('uploading')
+      setProgressPercent(65)
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       })
 
       const text = await res.text()
-      setStatus(text)
-      setFile(null)
-      setPreview(null)
-      setDescription('')
+
+      if (res.ok) {
+        setStatus(text)
+        setProgress('done')
+        setProgressPercent(100)
+        setFile(null)
+        setPreview(null)
+        setDescription('')
+        setDescriptionError(false)
+      } else {
+        setStatus(text)
+        setProgress('error')
+        setProgressPercent(100)
+      }
     } catch (err) {
       console.error('Error al subir imagen:', err)
       setStatus('Error al subir imagen')
+      setProgress('error')
+      setProgressPercent(100)
     }
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', width: '100vw' }}>
-      <button
-        onClick={() => router.push('/gallery')}
-        style={{
-          position: 'fixed',
-          top: '1rem',
-          left: '1rem',
-          padding: '0.5rem 1rem',
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #444',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          zIndex: 1000,
-        }}
-      >
-        Ir a galería
+    <div className={styles.container}>
+      <button onClick={() => router.push('/gallery')} className={styles.backButton}>
+        ← Galería
       </button>
 
-      <div
-        style={{
-          padding: '2rem',
-          fontFamily: 'sans-serif',
-          maxWidth: '600px',
-          margin: 'auto',
-        }}
-      >
-        <h2>Sube tu imagen</h2>
+      <div className={styles.panel}>
+        <h2 className={styles.heading}>Sube tu imagen</h2>
 
         <label>Selecciona evento:</label>
         <select
           value={selectedEvent}
           onChange={e => setSelectedEvent(e.target.value)}
-          style={{ marginBottom: '1rem', padding: '0.5rem', width: '100%' }}
+          className={styles.select}
         >
           <option value="">-- Selecciona --</option>
           {events.map(ev => (
@@ -144,13 +147,7 @@ export default function UploadPage() {
           <>
             <div
               {...getRootProps()}
-              style={{
-                border: '2px dashed #888',
-                padding: '2rem',
-                textAlign: 'center',
-                background: isDragActive ? '#eee' : '#fafafa',
-                cursor: 'pointer',
-              }}
+              className={isDragActive ? styles.dropzoneActive : styles.dropzone}
             >
               <input {...getInputProps()} />
               <p>{isDragActive ? 'Suelta la imagen aquí...' : 'Arrastra una imagen o haz clic para seleccionar'}</p>
@@ -160,18 +157,7 @@ export default function UploadPage() {
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <span style={{ fontWeight: 'bold' }}>— o —</span>
                 <br />
-                <label
-                  htmlFor="cameraInput"
-                  style={{
-                    display: 'inline-block',
-                    marginTop: '0.5rem',
-                    padding: '0.5rem 1rem',
-                    background: '#0070f3',
-                    color: '#fff',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
-                >
+                <label htmlFor="cameraInput" className={styles.cameraLabel}>
                   Tomar foto
                 </label>
                 <input
@@ -187,31 +173,55 @@ export default function UploadPage() {
 
             {preview && (
               <>
-                <div style={{ marginTop: '1rem' }}>
-                  <img src={preview} alt="Vista previa" style={{ maxWidth: '100%', maxHeight: '300px' }} />
+                <div style={{ marginTop: '1.5rem' }}>
+                  <img src={preview} alt="Vista previa" className={styles.preview} />
                 </div>
 
                 <textarea
-                  placeholder="Descripción (opcional)"
+                  placeholder="Descripción (obligatoria)"
                   value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  style={{ marginTop: '1rem', width: '100%', padding: '0.5rem' }}
+                  onChange={e => {
+                    setDescription(e.target.value)
+                    setDescriptionError(false)
+                  }}
+                  className={`${styles.textarea} ${descriptionError ? styles.textareaError : ''}`}
                 />
+                {descriptionError && (
+                  <p className={styles.errorText}>La descripción es obligatoria</p>
+                )}
               </>
             )}
 
             {file && (
-              <button
-                onClick={handleUpload}
-                style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
-              >
-                Subir
+              <button onClick={handleUpload} className={styles.button}>
+                Subir imagen
               </button>
             )}
           </>
         )}
 
-        {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
+        {progress !== 'idle' && (
+          <>
+            <div className={styles.progressBarContainer}>
+              <div
+                className={styles.progressBar}
+                style={{
+                  width: `${progressPercent}%`,
+                  backgroundColor:
+                    progress === 'error' ? 'red' : progress === 'done' ? '#4caf50' : 'var(--accent)',
+                }}
+              />
+            </div>
+            <p className={styles.progressText}>
+              {progress === 'processing' && 'Procesando imagen...'}
+              {progress === 'uploading' && 'Subiendo imagen...'}
+              {progress === 'done' && 'Imagen subida exitosamente'}
+              {progress === 'error' && 'Error al subir imagen'}
+            </p>
+          </>
+        )}
+
+        {status && <p className={styles.status}>{status}</p>}
       </div>
     </div>
   )
