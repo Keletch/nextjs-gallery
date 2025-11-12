@@ -6,7 +6,7 @@ import GalleryCanvas from './GalleryCanvas'
 import FullscreenViewer from './FullscreenViewer'
 import useGallerySpeed from './UseGallerySpeed'
 import BackgroundCanvas from './BackgroundCanvas'
-import GrainOverlay from './GrainOverlay' // ✅ nuevo import
+import GrainOverlay from './GrainOverlay'
 import styles from './GalleryPage.module.css'
 
 interface Evento {
@@ -31,6 +31,7 @@ export default function GalleryClient() {
   const router = useRouter()
   useGallerySpeed()
 
+  // ✅ Leer hash desde la URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const hash = params.get('open')
@@ -55,6 +56,7 @@ export default function GalleryClient() {
     setSelectedImage(null)
   }
 
+  // ✅ Ajustar altura según viewport
   useEffect(() => {
     const updateHeight = () => setViewportHeight(window.innerHeight)
     updateHeight()
@@ -62,6 +64,7 @@ export default function GalleryClient() {
     return () => window.removeEventListener('resize', updateHeight)
   }, [])
 
+  // ✅ Obtener lista de eventos
   useEffect(() => {
     const fetchEventos = async () => {
       const res = await fetch('/api/public-events')
@@ -71,6 +74,7 @@ export default function GalleryClient() {
     fetchEventos()
   }, [])
 
+  // ✅ Obtener galería según evento
   useEffect(() => {
     const fetchGallery = async () => {
       const url = selectedEvent
@@ -114,7 +118,10 @@ export default function GalleryClient() {
 
   return (
     <>
-      <GrainOverlay /> {/* ✅ capa superior */}
+      {/* 🌫️ Capa superior de grano */}
+      <GrainOverlay />
+
+      {/* 🌌 Fondo y galería */}
       <BackgroundCanvas selectedEvent={selectedEvent} />
       <div className={styles.container} style={{ height: `${viewportHeight}px` }}>
         <div className={styles.topBar}>
@@ -140,7 +147,7 @@ export default function GalleryClient() {
           <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
         )}
 
-        <img src="/SHIFT.png" alt="Galería SHIFT" className={styles.logo} />
+        <img src="/shiftLogo.png" alt="Galería SHIFT" className={styles.logo} />
       </div>
     </>
   )
