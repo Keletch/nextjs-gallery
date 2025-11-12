@@ -1,11 +1,13 @@
 'use client'
+
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import GalleryCanvas from './GalleryCanvas'
 import FullscreenViewer from './FullscreenViewer'
 import useGallerySpeed from './UseGallerySpeed'
-import { useRouter } from 'next/navigation'
-import styles from './GalleryPage.module.css'
 import BackgroundCanvas from './BackgroundCanvas'
+import GrainOverlay from './GrainOverlay' // ✅ nuevo import
+import styles from './GalleryPage.module.css'
 
 interface Evento {
   id: string
@@ -112,6 +114,7 @@ export default function GalleryClient() {
 
   return (
     <>
+      <GrainOverlay /> {/* ✅ capa superior */}
       <BackgroundCanvas selectedEvent={selectedEvent} />
       <div className={styles.container} style={{ height: `${viewportHeight}px` }}>
         <div className={styles.topBar}>
@@ -137,7 +140,6 @@ export default function GalleryClient() {
           <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
         )}
 
-        {/* ✅ Logo SHIFT abajo a la derecha */}
         <img src="/SHIFT.png" alt="Galería SHIFT" className={styles.logo} />
       </div>
     </>
