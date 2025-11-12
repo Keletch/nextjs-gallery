@@ -18,7 +18,9 @@ export async function GET() {
       return NextResponse.json([], { status: 500 })
     }
 
-    return NextResponse.json(data)
+    const response = NextResponse.json(data)
+    response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600')
+    return response
   } catch (err) {
     console.error('[public-events] ❌ Error inesperado:', err)
     return NextResponse.json([], { status: 500 })

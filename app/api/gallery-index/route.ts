@@ -45,16 +45,21 @@ export async function GET(req: Request) {
   const evento = searchParams.get('evento')
 
   try {
+    let files: { filename: string; folder: string }[] = []
+
     if (evento) {
-      const files = await listFiles(`${evento}/approved`)
-      return NextResponse.json(files)
+      files = await listFiles(`${evento}/approved`)
     } else {
       const eventos = await listEventFolders()
       const allFiles = await Promise.all(
         eventos.map((ev) => listFiles(`${ev}/approved`))
       )
-      return NextResponse.json(allFiles.flat())
+      files = allFiles.flat()
     }
+
+    const response = NextResponse.json(files)
+    response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600')
+    return response
   } catch (err) {
     console.error('Error en /api/gallery-index:', err)
     return NextResponse.json([], { status: 500 })
