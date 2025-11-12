@@ -7,6 +7,40 @@
   --font-main: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+@media (max-width: 600px) {
+  .gridGallery {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))!important;
+    padding: 1rem!important;
+  }
+
+  .gridCell {
+    border-radius: 8px!important;
+  }
+
+  .gridImage {
+    border-radius: 8px!important;
+  }
+
+  .logo,
+  .layoutToggle {
+    position: fixed!important;
+    bottom: 20px!important;
+    right: 20px!important;
+    z-index: 20!important;
+  }
+
+  .layoutToggle {
+    flex-direction: column!important;
+    gap: 12px!important;
+    bottom: calc(20px + min(120px, 10vw) + 12px)!important;
+  }
+
+  .gridWrapper{
+    margin-top: 8rem!important;
+    min-height: 100vh!important;
+  }
+}
+
 .container {
   height: 100vh;
   width: 100vw;
@@ -15,6 +49,8 @@
   color: var(--text-main);
   overflow: hidden;
   z-index: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .topBar {
@@ -166,4 +202,109 @@
 .logo:hover {
   transform: scale(1.05);
   opacity: 1;
+}
+
+/* ✅ Modo grid para galería ordenada */
+.gridWrapper {
+  margin-top: 6rem;
+  padding-bottom: 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.gridGallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.2rem;
+  width: 100%;
+  max-width: 1600px;
+  padding: 2rem;
+}
+
+.gridCell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background-color: var(--bg-panel);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+}
+
+.gridCell:hover {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.gridImage {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+}
+
+/* ✅ Canvas por celda para aberratedMaterial */
+.canvasCell {
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+/* ✅ Paginación */
+.pagination {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pageButton {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.pageButton:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  transform: scale(1.05);
+}
+
+.activePage {
+  background-color: var(--accent);
+  color: #000;
+}
+
+.layoutToggle {
+  position: absolute;
+  right: 20px;
+  bottom: calc(20px + min(120px, 20vw) + 12px); /* justo encima del logo */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 11;
+}
+
+.iconButton {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  border: none;
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.iconButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.05);
 }

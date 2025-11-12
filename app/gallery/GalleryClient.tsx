@@ -7,6 +7,7 @@ import FullscreenViewer from './FullscreenViewer'
 import useGallerySpeed from './UseGallerySpeed'
 import BackgroundCanvas from './BackgroundCanvas'
 import GrainOverlay from './GrainOverlay'
+import { GridGallery } from './GridGallery'
 import styles from './GalleryPage.module.css'
 
 interface Evento {
@@ -27,11 +28,11 @@ export default function GalleryClient() {
   const [urls, setUrls] = useState<Record<string, { thumb: string; full: string; evento: string }>>({})
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [viewportHeight, setViewportHeight] = useState<number>(0)
+  const [layoutMode, setLayoutMode] = useState<'animated' | 'grid'>('animated')
 
   const router = useRouter()
   useGallerySpeed()
 
-  // ✅ Leer hash desde la URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const hash = params.get('open')
@@ -56,7 +57,6 @@ export default function GalleryClient() {
     setSelectedImage(null)
   }
 
-  // ✅ Ajustar altura según viewport
   useEffect(() => {
     const updateHeight = () => setViewportHeight(window.innerHeight)
     updateHeight()
@@ -64,7 +64,6 @@ export default function GalleryClient() {
     return () => window.removeEventListener('resize', updateHeight)
   }, [])
 
-  // ✅ Obtener lista de eventos
   useEffect(() => {
     const fetchEventos = async () => {
       const res = await fetch('/api/public-events')
@@ -74,7 +73,6 @@ export default function GalleryClient() {
     fetchEventos()
   }, [])
 
-  // ✅ Obtener galería según evento
   useEffect(() => {
     const fetchGallery = async () => {
       const url = selectedEvent
@@ -118,10 +116,7 @@ export default function GalleryClient() {
 
   return (
     <>
-      {/* 🌫️ Capa superior de grano */}
       <GrainOverlay />
-
-      {/* 🌌 Fondo y galería */}
       <BackgroundCanvas selectedEvent={selectedEvent} />
       <div className={styles.container} style={{ height: `${viewportHeight}px` }}>
         <div className={styles.topBar}>
@@ -142,10 +137,38 @@ export default function GalleryClient() {
           </button>
         </div>
 
-        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} />
+        {layoutMode === 'grid' ? (
+          <GridGallery
+            images={images.map((id) => ({
+              id,
+              url: urls[id]?.thumb || '',
+              alt: urls[id]?.evento || '',
+            }))}
+            onSelect={(img) => handleSelect(urls[img.id]?.full || '')}
+          />
+        ) : (
+          <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} />
+        )}
+
         {selectedImage && (
           <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
         )}
+
+        <div className={styles.layoutToggle}>
+          <button onClick={() => setLayoutMode('grid')} className={styles.iconButton}>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+          </button>
+          <button onClick={() => setLayoutMode('animated')} className={styles.iconButton}>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm1 17.93V20a1 1 0 0 1-2 0v-.07A8.001 8.001 0 0 1 4.07 13H4a1 1 0 0 1 0-2h.07A8.001 8.001 0 0 1 11 4.07V4a1 1 0 0 1 2 0v.07A8.001 8.001 0 0 1 19.93 11H20a1 1 0 0 1 0 2h-.07A8.001 8.001 0 0 1 13 19.93z" />
+            </svg>
+          </button>
+        </div>
 
         <img src="/shiftLogo.png" alt="Galería SHIFT" className={styles.logo} />
       </div>
