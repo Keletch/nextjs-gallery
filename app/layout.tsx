@@ -21,33 +21,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-// 🌐 Metadatos neutros (fallback si no hay dinámicos)
+// Metadata básica (fallback)
 export const metadata: Metadata = {
   title: "Galería CDI",
   description: "Comparte tus experiencias con nuestra comunidad",
-  openGraph: {
-    title: "Galería CDI",
-    description: "Comparte tus experiencias con nuestra comunidad",
-    images: [
-      {
-        url: "https://galeria.chu.mx/SHIFT.png",
-        width: 1200,
-        height: 630,
-        alt: "Galería CDI",
-      },
-    ],
-    type: "website",
-    url: "https://galeria.chu.mx/gallery",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Galería CDI",
-    description: "Comparte tus experiencias con nuestra comunidad",
-    images: ["https://galeria.chu.mx/SHIFT.png"],
-  },
 }
 
-export default function GalleryLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
