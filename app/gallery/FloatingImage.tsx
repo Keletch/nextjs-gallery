@@ -134,6 +134,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
     <mesh
       ref={ref}
       onPointerMove={(e) => {
+        if (opacity.current < 0.5) return
         e.stopPropagation()
         if (!hoveredRef.current || !e.uv) return
         // 🔹 Calcula el tilt según posición del cursor
@@ -141,12 +142,14 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
         targetRotation.current.y = -(e.uv.x - 0.5) * maxTilt
       }}
       onPointerOver={(e) => {
+        if (opacity.current < 0.5) return
         e.stopPropagation()
         setPaused(true)
         hoveredRef.current = true
         document.body.style.cursor = 'pointer'
       }}
       onPointerOut={(e) => {
+        if (opacity.current < 0.5) return
         e.stopPropagation()
         setPaused(false)
         hoveredRef.current = false
@@ -154,6 +157,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
         document.body.style.cursor = 'default'
       }}
       onClick={(e) => {
+        if (opacity.current < 0.5) return
         e.stopPropagation()
         onClick(textureUrl)
       }}

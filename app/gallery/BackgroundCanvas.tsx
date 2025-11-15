@@ -39,6 +39,9 @@ function BackgroundMesh({ selectedEvent }: BackgroundCanvasProps) {
   }, [gl])
 
   useFrame((state) => {
+    // ✅ Pausar si la pestaña está oculta
+    if (document.hidden) return
+    
     if (meshRef.current) {
       const mat = meshRef.current.material as any
       if (mat?.uniforms?.time) {
@@ -96,7 +99,7 @@ export default function BackgroundCanvas({ selectedEvent }: BackgroundCanvasProp
     <div 
       ref={canvasRef}
       style={{
-        position: 'fixed', // ⚠️ Cambiar de absolute a fixed
+        position: 'fixed',
         inset: 0,
         zIndex: -1,
         pointerEvents: 'none',
@@ -112,12 +115,12 @@ export default function BackgroundCanvas({ selectedEvent }: BackgroundCanvasProp
           }}
           gl={{ 
             alpha: true,
-            antialias: false, // Desactivar antialiasing para mejor performance
+            antialias: false,
             powerPreference: 'high-performance',
-            preserveDrawingBuffer: true, // 🔹 Prevenir que se pierda el contexto
+            preserveDrawingBuffer: true,
           }}
           frameloop="always"
-          dpr={[1, 2]} // Limitar pixel ratio
+          dpr={[1, 2]}
         >
           <BackgroundMesh selectedEvent={selectedEvent} />
         </Canvas>
