@@ -42,6 +42,12 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        {/* 
+          nextJs_InfiniteGallery
+          Developed by: Keletch
+          GitHub: github.com/Keletch
+          Year: 2025
+        /}
         {/* ⚡ Preconnect a Supabase para cargar imágenes más rápido */}
         <link rel="preconnect" href="https://sinpfcbinaiasorunmpz.supabase.co" />
         <link rel="dns-prefetch" href="https://sinpfcbinaiasorunmpz.supabase.co" />
