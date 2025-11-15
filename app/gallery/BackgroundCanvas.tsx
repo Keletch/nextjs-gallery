@@ -1,6 +1,6 @@
 'use client'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect, useState } from 'react'
 import * as THREE from 'three'
 import './NebulaMaterial'
 
@@ -25,11 +25,18 @@ const EVENT_COLORS: Record<string, { subColor: [number, number, number]; accentC
 
 function BackgroundMesh({ selectedEvent }: BackgroundCanvasProps) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const { viewport } = useThree()
+  const { viewport, gl } = useThree()
   const resolution: [number, number] = [viewport.width, viewport.height]
   const aspect = resolution[0] / resolution[1]
   const area = resolution[0] * resolution[1]
   const seed = useMemo(() => Math.random() * 1000, [])
+
+  // 🔹 Prevenir que el renderer se pierda
+  useEffect(() => {
+    if (gl) {
+      gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    }
+  }, [gl])
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -71,19 +78,50 @@ function BackgroundMesh({ selectedEvent }: BackgroundCanvasProps) {
 }
 
 export default function BackgroundCanvas({ selectedEvent }: BackgroundCanvasProps) {
+  const [isVisible, setIsVisible] = useState(true)
+  const canvasRef = useRef<HTMLDivElement>(null)
+
+  // 🔹 Mantener siempre visible en móvil para evitar desmontaje
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent)
+    if (!isMobile) return
+
+    // En móvil, siempre mantener montado
+    setIsVisible(true)
+  }, [])
+
   return (
-    <Canvas
-      orthographic
-      camera={{ zoom: 100, position: [0, 0, 5] }}
+    <div 
+      ref={canvasRef}
       style={{
-        position: 'absolute',
+        position: 'fixed', // ⚠️ Cambiar de absolute a fixed
         inset: 0,
         zIndex: -1,
         pointerEvents: 'none',
       }}
-      gl={{ alpha: true }}
     >
-      <BackgroundMesh selectedEvent={selectedEvent} />
-    </Canvas>
+      {isVisible && (
+        <Canvas
+          orthographic
+          camera={{ zoom: 100, position: [0, 0, 5] }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+          }}
+          gl={{ 
+            alpha: true,
+            antialias: false, // Desactivar antialiasing para mejor performance
+            powerPreference: 'high-performance',
+            preserveDrawingBuffer: true, // 🔹 Prevenir que se pierda el contexto
+          }}
+          frameloop="always"
+          dpr={[1, 2]} // Limitar pixel ratio
+        >
+          <BackgroundMesh selectedEvent={selectedEvent} />
+        </Canvas>
+      )}
+    </div>
   )
 }
