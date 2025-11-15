@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { logAction } from '@/lib/supabase'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 const MAX_SIZE_MB = 50
 const RESIZE_THRESHOLD_MB = 10
@@ -17,6 +18,13 @@ function hashBuffer(buffer: Buffer) {
 
 export async function POST(req: NextRequest) {
   try {
+    // ✅ Rate limiting PRIMERO (antes de procesar nada)
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    
+    if (!checkRateLimit(ip, 10, 60000)) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes. Espera un momento.' }, { status: 429 })
+    }
+
     // ✅ Leer el cuerpo antes de tocar req
     const formData = await req.formData()
     const file = formData.get('image') as File

@@ -10,6 +10,7 @@ interface FloatingImageProps {
   textureUrl: string
   delay: number
   onClick: (url: string) => void
+  onExit?: () => void
 }
 
 declare global {
@@ -18,7 +19,7 @@ declare global {
   }
 }
 
-export default function FloatingImage({ textureUrl, delay, onClick }: FloatingImageProps) {
+export default function FloatingImage({ textureUrl, delay, onClick, onExit }: FloatingImageProps) {
   const texture = useLoader(TextureLoader, textureUrl)
   const ref = useRef<Mesh>(null)
   const { viewport } = useThree()
@@ -82,7 +83,7 @@ export default function FloatingImage({ textureUrl, delay, onClick }: FloatingIm
 
     // 🔹 Movimiento flotante si no está pausado
     if (activated.current && !paused) {
-      position.current[2] += 0.02 * window.__gallerySpeed
+      position.current[2] += 0.05 * window.__gallerySpeed
       scale.current += (1.5 - scale.current) * 0.02 * window.__gallerySpeed
       ref.current.position.set(...position.current)
       ref.current.scale.setScalar(scale.current)
@@ -99,6 +100,8 @@ export default function FloatingImage({ textureUrl, delay, onClick }: FloatingIm
       setVisible(false)
       aberration.current = 0
       targetRotation.current.set(0, 0, 0)
+      if (onExit) onExit()
+
     }
   })
 

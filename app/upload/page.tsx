@@ -17,6 +17,7 @@ export default function UploadPage() {
   const [progress, setProgress] = useState<'idle' | 'processing' | 'uploading' | 'done' | 'error'>('idle')
   const [progressPercent, setProgressPercent] = useState<number>(0)
   const [descriptionError, setDescriptionError] = useState<boolean>(false)
+  const [honeypot, setHoneypot] = useState<string>('') // ✅ Anti-bot honeypot
 
   const router = useRouter()
   const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(window.navigator.userAgent)
@@ -74,6 +75,13 @@ export default function UploadPage() {
   })
 
   const handleUpload = async () => {
+    // ✅ Honeypot check (anti-bot)
+    if (honeypot) {
+      console.warn('Bot detectado')
+      setStatus('Error al procesar solicitud')
+      return
+    }
+
     if (!file || !selectedEvent || !description.trim()) {
       setDescriptionError(true)
       return
@@ -143,6 +151,18 @@ export default function UploadPage() {
           ))}
         </select>
 
+        {/* ✅ Honeypot oculto (anti-bot) */}
+        <input
+          type="text"
+          name="website"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+        />
+
         {selectedEvent && (
           <>
             <div
@@ -185,6 +205,7 @@ export default function UploadPage() {
                     setDescriptionError(false)
                   }}
                   className={`${styles.textarea} ${descriptionError ? styles.textareaError : ''}`}
+                  maxLength={500}
                 />
                 {descriptionError && (
                   <p className={styles.errorText}>La descripción es obligatoria</p>

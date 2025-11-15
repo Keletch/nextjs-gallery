@@ -2,13 +2,28 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import GalleryCanvas from './GalleryCanvas'
-import FullscreenViewer from './FullscreenViewer'
+import dynamic from 'next/dynamic'
 import useGallerySpeed from './UseGallerySpeed'
-import BackgroundCanvas from './BackgroundCanvas'
-import GrainOverlay from './GrainOverlay'
-import { GridGalleryModal } from './GridGalleryModal'
+import FullscreenViewer from './FullscreenViewer'
 import styles from './GalleryPage.module.css'
+
+// ⚡ Lazy load de componentes pesados (Three.js)
+const GalleryCanvas = dynamic(() => import('./GalleryCanvas'), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: '100vh', background: '#0f0f0f' }} />
+})
+
+const BackgroundCanvas = dynamic(() => import('./BackgroundCanvas'), {
+  ssr: false,
+})
+
+const GrainOverlay = dynamic(() => import('./GrainOverlay'), {
+  ssr: false,
+})
+
+const GridGalleryModal = dynamic(() => import('./GridGalleryModal').then(mod => mod.GridGalleryModal), {
+  ssr: false,
+})
 
 interface Evento {
   id: string
@@ -116,11 +131,9 @@ export default function GalleryClient() {
 
   return (
     <>
-      {/* ✅ Los shaders SIEMPRE están montados, nunca se desmontan */}
       <GrainOverlay />
       <BackgroundCanvas selectedEvent={selectedEvent} />
       
-      {/* ✅ Galería animada principal (siempre visible) */}
       <div className={styles.container} style={{ height: `${viewportHeight}px` }}>
         <div className={styles.topBar}>
           <select
@@ -146,7 +159,6 @@ export default function GalleryClient() {
           <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
         )}
 
-        {/* ✅ Botón para abrir modal de grid */}
         <button 
           onClick={() => setShowGridModal(true)} 
           className={styles.gridToggleButton}
@@ -163,7 +175,6 @@ export default function GalleryClient() {
         <img src="/shiftLogo.png" alt="Galería SHIFT" className={styles.logo} />
       </div>
 
-      {/* ✅ Modal de grid (se monta sobre todo sin interferir con WebGL) */}
       {showGridModal && (
         <GridGalleryModal
           images={images.map((id) => ({
@@ -172,7 +183,8 @@ export default function GalleryClient() {
             fullUrl: urls[id]?.full || '',
             alt: urls[id]?.evento || '',
           }))}
-          onSelect={(fullUrl) => handleSelect(fullUrl)}
+          eventos={eventos}
+          onSelect={(fullUrl: string) => handleSelect(fullUrl)}
           onClose={() => setShowGridModal(false)}
         />
       )}

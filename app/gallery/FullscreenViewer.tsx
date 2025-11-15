@@ -9,6 +9,13 @@ interface FullscreenViewerProps {
   onClose: () => void
 }
 
+// ✅ Función para sanitizar texto (prevenir XSS)
+function sanitizeText(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
 export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProps) {
   const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
 
@@ -54,7 +61,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
 
       setInfo({
         evento: eventoNombre,
-        description: data.description,
+        description: data.description || 'Sin descripción',
         created_at: data.created_at,
       })
 
@@ -99,6 +106,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
       <div className={styles.viewerInfo}>
         {info ? (
           <>
+            {/* ✅ Renderizado seguro sin HTML - previene XSS */}
             <p><strong>Evento:</strong> {info.evento}</p>
             <p><strong>Descripción:</strong> {info.description}</p>
             <p style={{ opacity: 0.7 }}>
