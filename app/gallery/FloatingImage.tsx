@@ -3,7 +3,6 @@ import { useFrame, useLoader, useThree } from '@react-three/fiber'
 import { TextureLoader, Mesh, Euler } from 'three'
 import { useEffect, useState, useRef } from 'react'
 import * as THREE from 'three'
-import './RoundedMaterial'
 import './AberratedMaterial'
 
 interface FloatingImageProps {
@@ -11,6 +10,7 @@ interface FloatingImageProps {
   delay: number
   onClick: (url: string) => void
   onExit?: () => void
+  forceHidden?: boolean
 }
 
 declare global {
@@ -19,7 +19,7 @@ declare global {
   }
 }
 
-export default function FloatingImage({ textureUrl, delay, onClick, onExit }: FloatingImageProps) {
+export default function FloatingImage({ textureUrl, delay, onClick, onExit, forceHidden }: FloatingImageProps) {
   const texture = useLoader(TextureLoader, textureUrl)
   const ref = useRef<Mesh>(null)
   const { viewport } = useThree()
@@ -52,11 +52,29 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit }: Fl
   }, [])
 
   useFrame(() => {
+    // ✅ PAUSAR TODO si la pestaña está oculta
+    if (document.hidden) {
+      lastFrameTime.current = performance.now()
+      return
+    }
+
+    // ✅ Si está forzada a oculta, no renderizar nada
+    if (forceHidden) {
+      if (ref.current) {
+        ref.current.visible = false
+      }
+      return
+    }
+
+    if (ref.current) {
+      ref.current.visible = true
+    }
+
     const now = performance.now()
     let delta = now - lastFrameTime.current
     lastFrameTime.current = now
     if (delta > 50) delta = 16.67
-    if (!document.hidden) localTimer.current += delta
+    localTimer.current += delta
 
     if (!activated.current && localTimer.current >= delay) {
       activated.current = true
@@ -83,7 +101,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit }: Fl
 
     // 🔹 Movimiento flotante si no está pausado
     if (activated.current && !paused) {
-      position.current[2] += 0.035 * window.__gallerySpeed
+      position.current[2] += 0.02 * window.__gallerySpeed
       scale.current += (1.5 - scale.current) * 0.02 * window.__gallerySpeed
       ref.current.position.set(...position.current)
       ref.current.scale.setScalar(scale.current)
@@ -100,8 +118,9 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit }: Fl
       setVisible(false)
       aberration.current = 0
       targetRotation.current.set(0, 0, 0)
+      
+      // ✅ Notificar que salió
       if (onExit) onExit()
-
     }
   })
 
@@ -109,7 +128,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit }: Fl
   const height = 1.5
   const width = height * aspect
 
-  if (!visible) return null
+  if (!visible && !forceHidden) return null
 
   return (
     <mesh
