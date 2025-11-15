@@ -18,7 +18,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       title: 'Galería CDI',
       description: 'Comparte tus experiencias con nuestra comunidad',
       openGraph: {
-        images: ['https://galeria.chu.mx/SHIFT.png'],
+        images: ['https://galeria.chu.mx/SHIFT.gif'],
       },
     }
   }
@@ -34,7 +34,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       return {
         title: 'Galería CDI',
         openGraph: {
-          images: ['https://galeria.chu.mx/SHIFT.png'],
+          images: ['https://galeria.chu.mx/SHIFT.gif'],
         },
       }
     }
@@ -71,7 +71,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     return {
       title: 'Galería CDI',
       openGraph: {
-        images: ['https://galeria.chu.mx/SHIFT.png'],
+        images: ['https://galeria.chu.mx/SHIFT.gif'],
       },
     }
   }
