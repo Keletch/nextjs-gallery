@@ -83,7 +83,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit }: Fl
 
     // 🔹 Movimiento flotante si no está pausado
     if (activated.current && !paused) {
-      position.current[2] += 0.05 * window.__gallerySpeed
+      position.current[2] += 0.035 * window.__gallerySpeed
       scale.current += (1.5 - scale.current) * 0.02 * window.__gallerySpeed
       ref.current.position.set(...position.current)
       ref.current.scale.setScalar(scale.current)
