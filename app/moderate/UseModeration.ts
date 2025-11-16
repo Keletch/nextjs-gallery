@@ -11,50 +11,49 @@ export function useModeration(evento: string, folder: Folder) {
   const [logView, setLogView] = useState<'moderation' | 'uploads'>('moderation')
   const [status, setStatus] = useState<string>('')
 
-  useEffect(() => {
+  const fetchImages = async () => {
     if (!evento || folder === 'logs') return
 
-    const fetchImages = async () => {
-      try {
-        const res = await fetch(`/api/${folder}-index?evento=${evento}`)
-        const list = await res.json()
+    try {
+      const res = await fetch(`/api/${folder}-index?evento=${evento}`)
+      const list = await res.json()
 
-        const validImages = Array.isArray(list)
-          ? list.filter((f: unknown): f is string => typeof f === 'string' && /\.(webp)$/i.test(f))
-          : []
+      const validImages = Array.isArray(list)
+        ? list.filter((f: unknown): f is string => typeof f === 'string' && /\.(webp)$/i.test(f))
+        : []
 
-        setImages(validImages)
+      setImages(validImages)
 
-        const entries = await Promise.all(
-          validImages.map(async (filename) => {
-            const thumbPath = `${evento}/thumbnails/thumb_${filename}`
-            const originalPath = `${evento}/${folder}/${filename}`
+      const entries = await Promise.all(
+        validImages.map(async (filename) => {
+          const thumbPath = `${evento}/thumbnails/thumb_${filename}`
+          const originalPath = `${evento}/${folder}/${filename}`
 
-            const { data: thumbData } = supabaseClient.storage
-              .from('nextjsGallery')
-              .getPublicUrl(thumbPath)
+          const { data: thumbData } = supabaseClient.storage
+            .from('nextjsGallery')
+            .getPublicUrl(thumbPath)
 
-            const { data: originalData } = supabaseClient.storage
-              .from('nextjsGallery')
-              .getPublicUrl(originalPath)
+          const { data: originalData } = supabaseClient.storage
+            .from('nextjsGallery')
+            .getPublicUrl(originalPath)
 
-            return [
-              filename,
-              {
-                thumb: thumbData?.publicUrl || '',
-                original: originalData?.publicUrl || '',
-              },
-            ]
-          })
-        )
+          return [
+            filename,
+            {
+              thumb: thumbData?.publicUrl || '',
+              original: originalData?.publicUrl || '',
+            },
+          ]
+        })
+      )
 
-        setUrls(Object.fromEntries(entries))
-      } catch (err) {
-        console.error('❌ Error al cargar imágenes:', err)
-        setStatus('No se pudieron cargar las imágenes')
-      }
+      setUrls(Object.fromEntries(entries))
+    } catch (err) {
+      setStatus('No se pudieron cargar las imágenes')
     }
+  }
 
+  useEffect(() => {
     fetchImages()
   }, [evento, folder])
 
@@ -62,13 +61,13 @@ export function useModeration(evento: string, folder: Folder) {
     if (folder !== 'logs') return
 
     if (!evento) {
-      setLogs([]) // ✅ limpiar logs si no hay evento
+      setLogs([])
       return
     }
 
     const fetchLogs = async () => {
       try {
-        const res = await fetch(`/api/get-logs?evento=${evento}`) // ✅ filtrado por evento
+        const res = await fetch(`/api/get-logs?evento=${evento}`)
         const allLogs = await res.json()
         setLogs(allLogs)
       } catch (err) {
@@ -78,7 +77,7 @@ export function useModeration(evento: string, folder: Folder) {
     }
 
     fetchLogs()
-  }, [folder, evento]) // ✅ incluye evento como dependencia
+  }, [folder, evento])
 
   async function handleAction(endpoint: string, payload: any, successMsg: string) {
     try {
@@ -118,5 +117,6 @@ export function useModeration(evento: string, folder: Folder) {
     setLogView,
     status,
     handleAction,
+    refreshImages: fetchImages,
   }
 }

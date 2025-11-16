@@ -135,13 +135,51 @@
   align-items: center;
 }
 
+.thumbWrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
 .thumb {
   max-width: 100%;
   max-height: 200px;
   cursor: pointer;
   border-radius: 8px;
-  margin-bottom: 1rem;
   object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.thumbWrapper:hover .thumb {
+  transform: scale(1.03);
+  filter: brightness(1.1);
+}
+
+.thumbOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.thumbWrapper:hover .thumbOverlay {
+  opacity: 1;
+}
+
+.thumbOverlay span {
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 0.5rem;
 }
 
 .buttonGroup {
@@ -168,27 +206,6 @@
 .actionButton:hover {
   background-color: rgba(255, 255, 255, 0.18);
   transform: scale(1.05);
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0,0,0,0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.fullscreenImage {
-  max-width: 90%;
-  max-height: 90%;
-  border-radius: 12px;
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.08);
 }
 
 .table {

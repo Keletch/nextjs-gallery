@@ -23,6 +23,7 @@ export default function ModeratePage() {
     setLogView,
     status,
     handleAction,
+    refreshImages,
   } = useModeration(evento, folder)
 
   function getActions(): { label: string; handler: (filename: string) => void }[] {
@@ -105,7 +106,14 @@ export default function ModeratePage() {
         {status && <p className={styles.status}>{status}</p>}
 
         {folder !== 'logs' && evento && (
-          <ModerationPanel folder={folder} images={images} urls={urls} actions={getActions()} />
+          <ModerationPanel
+            folder={folder}
+            images={images}
+            urls={urls}
+            actions={getActions()}
+            evento={evento}
+            onUpdate={refreshImages}
+          />
         )}
 
         {folder === 'logs' && (

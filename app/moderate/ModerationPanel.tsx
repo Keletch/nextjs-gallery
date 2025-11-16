@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import ModeratorImageViewer from './ModeratorImageViewer'
 import styles from './ModeratePage.module.css'
 
 export default function ModerationPanel({
@@ -7,13 +8,29 @@ export default function ModerationPanel({
   images,
   urls,
   actions,
+  evento,
+  onUpdate,
 }: {
-  folder: string
+  folder: 'pending' | 'approved' | 'rejected'
   images: string[]
   urls: Record<string, { thumb: string; original: string }>
   actions: { label: string; handler: (filename: string) => void }[]
+  evento: string
+  onUpdate?: () => void
 }) {
-  const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string
+    filename: string
+  } | null>(null)
+  const [hoveredImage, setHoveredImage] = useState<string | null>(null)
+
+  const handleCloseViewer = () => {
+    setSelectedImage(null)
+    // Forzar recarga de imágenes después de cerrar
+    if (onUpdate) {
+      onUpdate()
+    }
+  }
 
   if (images.length === 0) {
     return <p className={styles.status}>No hay imágenes en esta sección.</p>
@@ -27,13 +44,25 @@ export default function ModerationPanel({
           if (!entry?.thumb || !entry?.original) return null
 
           return (
-            <div key={filename} className={styles.card}>
-              <img
-                src={entry.thumb}
-                alt=""
-                className={styles.thumb}
-                onClick={() => setFullscreenUrl(entry.original)}
-              />
+            <div
+              key={filename}
+              className={styles.card}
+              onMouseEnter={() => setHoveredImage(filename)}
+              onMouseLeave={() => setHoveredImage(null)}
+            >
+              <div className={styles.thumbWrapper}>
+                <img
+                  src={`${entry.thumb}?t=${Date.now()}`}
+                  alt=""
+                  className={styles.thumb}
+                  onClick={() => setSelectedImage({ url: entry.original, filename })}
+                />
+                {hoveredImage === filename && (
+                  <div className={styles.thumbOverlay}>
+                    <span>👁️ Ver detalles y editar</span>
+                  </div>
+                )}
+              </div>
               <div className={styles.buttonGroup}>
                 {actions.map((action) => (
                   <button
@@ -50,10 +79,15 @@ export default function ModerationPanel({
         })}
       </div>
 
-      {fullscreenUrl && (
-        <div className={styles.overlay} onClick={() => setFullscreenUrl(null)}>
-          <img src={fullscreenUrl} alt="fullscreen" className={styles.fullscreenImage} />
-        </div>
+      {selectedImage && (
+        <ModeratorImageViewer
+          imageUrl={`${selectedImage.url}?t=${Date.now()}`}
+          filename={selectedImage.filename}
+          evento={evento}
+          folder={folder}
+          onClose={handleCloseViewer}
+          onUpdate={onUpdate}
+        />
       )}
     </>
   )
