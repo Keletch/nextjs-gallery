@@ -12,6 +12,34 @@ interface ModeratorImageViewerProps {
   onUpdate?: () => void
 }
 
+// ✅ Componente Typewriter para efecto de escritura
+function TypewriterText({ text, delay = 0, speed = 30 }: { text: string; delay?: number; speed?: number }) {
+  const [displayedText, setDisplayedText] = useState('')
+  const [started, setStarted] = useState(false)
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setStarted(true)
+    }, delay)
+    return () => clearTimeout(timeout)
+  }, [delay])
+
+  useEffect(() => {
+    if (!started) return
+
+    let i = 0
+    const interval = setInterval(() => {
+      setDisplayedText(text.slice(0, i + 1))
+      i++
+      if (i >= text.length) clearInterval(interval)
+    }, speed)
+
+    return () => clearInterval(interval)
+  }, [text, started, speed])
+
+  return <span>{displayedText}</span>
+}
+
 export default function ModeratorImageViewer({
   imageUrl,
   filename,
@@ -30,6 +58,7 @@ export default function ModeratorImageViewer({
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<string>('')
   const [hasChanges, setHasChanges] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   const hash = filename.replace(/\.webp$/, '')
 
@@ -157,7 +186,7 @@ export default function ModeratorImageViewer({
 
       const result = await res.json()
       setSaveStatus(`✅ Imagen redimensionada: ${result.originalSize} → ${result.newSize}`)
-      
+
       // Actualizar tamaño mostrado
       setTimeout(() => {
         fetch(imageUrl, { method: 'HEAD' })
@@ -190,23 +219,32 @@ export default function ModeratorImageViewer({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* Imagen */}
         <div className={styles.imageContainer}>
+          {!imageLoaded && (
+            <div className={styles.imageLoader}>
+              <div className={styles.spinner}></div>
+              <p>Cargando imagen...</p>
+            </div>
+          )}
           <img
             src={imageUrl}
             alt="Preview"
-            className={styles.image}
+            className={`${styles.image} ${styles.fadeInImage} ${imageLoaded ? styles.visible : ''}`}
             style={{ transform: getTransform() }}
+            onLoad={() => setImageLoaded(true)}
           />
         </div>
 
         {/* Panel de controles */}
         <div className={styles.controls}>
           <h3>Editar Imagen</h3>
-          
-          {/* Info del archivo */}
-          <div className={styles.fileInfo}>
-            <p><strong>Tamaño:</strong> {formatFileSize(fileSize)}</p>
-            <p><strong>Carpeta:</strong> {folder}</p>
-          </div>
+
+          {/* Info del archivo - Solo mostrar cuando fileSize > 0 */}
+          {fileSize > 0 && (
+            <div className={styles.fileInfo}>
+              <p><strong>Tamaño: </strong> <TypewriterText text={formatFileSize(fileSize)} speed={50} /></p>
+              <p><strong>Carpeta: </strong> <TypewriterText text={folder} delay={300} speed={50} /></p>
+            </div>
+          )}
 
           {/* Descripción */}
           <div className={styles.section}>
@@ -224,16 +262,16 @@ export default function ModeratorImageViewer({
           <div className={styles.section}>
             <label>Transformaciones:</label>
             <div className={styles.transformButtons}>
-              <button onClick={() => setRotation((r) => (r - 90) % 360)} className={styles.transformBtn}>
+              <button onClick={() => setRotation((r) => (r - 90) % 360)} className={`${styles.transformBtn} ${styles.staggeredButton}`}>
                 ↶ 90°
               </button>
-              <button onClick={() => setRotation((r) => (r + 90) % 360)} className={styles.transformBtn}>
+              <button onClick={() => setRotation((r) => (r + 90) % 360)} className={`${styles.transformBtn} ${styles.staggeredButton}`}>
                 ↷ 90°
               </button>
-              <button onClick={() => setFlipH(!flipH)} className={`${styles.transformBtn} ${flipH ? styles.active : ''}`}>
+              <button onClick={() => setFlipH(!flipH)} className={`${styles.transformBtn} ${flipH ? styles.active : ''} ${styles.staggeredButton}`}>
                 ⇄ Horizontal
               </button>
-              <button onClick={() => setFlipV(!flipV)} className={`${styles.transformBtn} ${flipV ? styles.active : ''}`}>
+              <button onClick={() => setFlipV(!flipV)} className={`${styles.transformBtn} ${flipV ? styles.active : ''} ${styles.staggeredButton}`}>
                 ⇅ Vertical
               </button>
             </div>
@@ -276,15 +314,17 @@ export default function ModeratorImageViewer({
 
           {/* Botones de acción */}
           <div className={styles.actions}>
-            <button
-              onClick={handleSaveChanges}
-              disabled={!hasChanges || isSaving}
-              className={styles.saveBtn}
-            >
-              {isSaving ? 'Guardando...' : hasChanges ? '✓ Guardar Cambios' : 'Cerrar'}
-            </button>
-            <button onClick={onClose} className={styles.cancelBtn}>
-              Cancelar
+            {hasChanges && (
+              <button
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className={`${styles.saveBtn} ${styles.staggeredButton}`}
+              >
+                {isSaving ? 'Guardando...' : '✓ Guardar Cambios'}
+              </button>
+            )}
+            <button onClick={onClose} className={`${styles.cancelBtn} ${styles.staggeredButton}`}>
+              {hasChanges ? 'Cancelar' : 'Cerrar'}
             </button>
           </div>
         </div>

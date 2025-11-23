@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('events')
-      .select('id, nombre, ruta')
+      .select('id, nombre, ruta, color, logo')
       .order('nombre', { ascending: true })
 
     if (error) {

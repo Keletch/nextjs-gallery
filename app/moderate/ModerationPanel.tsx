@@ -26,10 +26,6 @@ export default function ModerationPanel({
 
   const handleCloseViewer = () => {
     setSelectedImage(null)
-    // Forzar recarga de imágenes después de cerrar
-    if (onUpdate) {
-      onUpdate()
-    }
   }
 
   if (images.length === 0) {

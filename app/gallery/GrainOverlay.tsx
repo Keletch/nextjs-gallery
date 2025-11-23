@@ -19,7 +19,7 @@ function GrainPlane() {
       const mat = meshRef.current.material as THREE.ShaderMaterial
       mat.uniforms.u_time.value = clock.getElapsedTime()
       mat.uniforms.u_resolution.value.set(size.width, size.height)
-      invalidate()
+      // invalidate() // No need to invalidate if frameloop is always (when visible)
     }
   })
 
@@ -28,7 +28,18 @@ function GrainPlane() {
 
 export default function GrainOverlay() {
   const [mounted, setMounted] = useState(false)
+  const [isTabVisible, setIsTabVisible] = useState(true)
+
   useEffect(() => setMounted(true), [])
+
+  // 🔹 Detectar visibilidad de la pestaña
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden)
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   if (!mounted) return null
 
@@ -43,7 +54,8 @@ export default function GrainOverlay() {
         pointerEvents: 'none',
       }}
       gl={{ alpha: true }}
-      frameloop="always"
+      frameloop={isTabVisible ? 'always' : 'never'}
+      dpr={[1, 1]} // Grain doesn't need high DPI
     >
       <GrainPlane />
     </Canvas>

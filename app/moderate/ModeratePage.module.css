@@ -19,6 +19,7 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
 .heading {
@@ -40,6 +41,8 @@
 
 .createEventTrigger {
   margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
 }
 
 .select,
@@ -67,9 +70,14 @@
   backdrop-filter: blur(4px);
 }
 
-.button:hover {
+.button:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.18);
   transform: scale(1.03);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .buttonRow {
@@ -77,6 +85,7 @@
   gap: 1rem;
   margin-top: 1rem;
   justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
 .logoutButton {
@@ -94,6 +103,7 @@
   justify-content: center;
   gap: 1rem;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
 .folderButton {
@@ -133,6 +143,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
 .thumbWrapper {
@@ -253,14 +264,81 @@
   text-align: center;
 }
 
+/* Spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 1rem auto;
+}
+
 /* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem 1rem;
+  }
+
+  .heading {
+    font-size: 1.8rem;
+  }
+
+  .panel {
+    padding: 1.5rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .buttonRow {
+    flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
+  }
+}
+
+/* Logo dropzone (matching upload page style) */
+.logoDropzone {
+  border: 2px dashed var(--border);
+  padding: 2rem;
+  text-align: center;
+  background-color: rgba(26, 26, 26, 0.6);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-bottom: 15px;
+}
+
+.logoDropzone:hover {
+  background-color: rgba(40, 40, 40, 0.8);
+}
+
+.logoDropzone p {
+  margin: 0;
+  color: var(--text-main);
+  opacity: 0.7;
 }

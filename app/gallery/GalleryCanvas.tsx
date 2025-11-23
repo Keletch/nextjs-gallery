@@ -8,9 +8,10 @@ interface GalleryCanvasProps {
   images: string[]
   urls: Record<string, { thumb: string; full: string }>
   onSelect: (url: string) => void
+  eventId: string
 }
 
-export default function GalleryCanvas({ images, urls, onSelect }: GalleryCanvasProps) {
+function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'eventId'>) {
   const shuffledImages = useMemo(() => {
     const arr = [...images]
     for (let i = arr.length - 1; i > 0; i--) {
@@ -55,10 +56,10 @@ export default function GalleryCanvas({ images, urls, onSelect }: GalleryCanvasP
           }
           return prev
         }
-        
+
         const randomIndex = Math.floor(Math.random() * baul.current.length)
         const nextImage = baul.current.splice(randomIndex, 1)[0]
-        
+
         return [...prev, nextImage]
       })
     }, 1000)
@@ -66,6 +67,8 @@ export default function GalleryCanvas({ images, urls, onSelect }: GalleryCanvasP
 
   // ✅ Inicializar baúl
   useEffect(() => {
+    // Al montar (gracias al key={eventId}), empezamos de 0
+    setActiveIndices([])
     baul.current = Array.from({ length: shuffledImages.length }, (_, i) => i)
     startSpawning()
 
@@ -79,28 +82,23 @@ export default function GalleryCanvas({ images, urls, onSelect }: GalleryCanvasP
   const handleImageExit = (index: number) => {
     setActiveIndices(prev => {
       const newActive = prev.filter(i => i !== index)
-      
+
       // Devolver al baúl
       baul.current.push(index)
-      
+
       // Solo sacar una nueva si tenemos espacio
       if (newActive.length < 18 && baul.current.length > 0) {
         const randomIndex = Math.floor(Math.random() * baul.current.length)
         const nextImage = baul.current.splice(randomIndex, 1)[0]
         return [...newActive, nextImage]
       }
-      
+
       return newActive
     })
   }
 
   return (
-    <Canvas
-      camera={{ position: [0, 0, 5], fov: 60 }}
-      shadows
-      frameloop="always"
-      gl={{ powerPreference: 'high-performance' }}
-    >
+    <>
       <SpeedUpdater />
       <ambientLight intensity={0.2} />
       <hemisphereLight intensity={0.5} groundColor={'#222'} />
@@ -109,9 +107,9 @@ export default function GalleryCanvas({ images, urls, onSelect }: GalleryCanvasP
         {shuffledImages.map((filename, i) => {
           const entry = urls[filename]
           if (!entry?.thumb) return null
-          
+
           const isActive = activeIndices.includes(i)
-          
+
           return (
             <FloatingImage
               key={filename}
@@ -124,6 +122,19 @@ export default function GalleryCanvas({ images, urls, onSelect }: GalleryCanvasP
           )
         })}
       </Suspense>
+    </>
+  )
+}
+
+export default function GalleryCanvas({ images, urls, onSelect, eventId }: GalleryCanvasProps) {
+  return (
+    <Canvas
+      camera={{ position: [0, 0, 5], fov: 60 }}
+      shadows
+      frameloop="always"
+      gl={{ powerPreference: 'high-performance' }}
+    >
+      <GalleryScene key={eventId} images={images} urls={urls} onSelect={onSelect} />
     </Canvas>
   )
 }

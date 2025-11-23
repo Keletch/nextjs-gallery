@@ -7,11 +7,12 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 type Props = {
-  searchParams: { open?: string }
+  searchParams: Promise<{ open?: string }>
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const hash = props.searchParams?.open
+  const searchParams = await props.searchParams
+  const hash = searchParams?.open
 
   if (!hash || hash.length !== 64) {
     return {

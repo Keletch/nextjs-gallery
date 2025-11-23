@@ -42,7 +42,6 @@ export async function deleteFile(filename: string, folder: string): Promise<void
 
 // 📁 Listar archivos en carpeta exacta
 export async function listFiles(folder: string): Promise<string[]> {
-  console.log(`[listFiles] 📁 Listando carpeta: ${folder}`)
   const { data, error } = await supabase.storage.from(BUCKET).list(folder, { limit: 1000 })
 
   if (error) {
@@ -51,7 +50,6 @@ export async function listFiles(folder: string): Promise<string[]> {
   }
 
   const files = data?.map(f => f.name) ?? []
-  console.log(`[listFiles] ✅ Archivos encontrados en ${folder}:`, files)
   return files
 }
 
@@ -68,7 +66,6 @@ export async function listEventFolders(): Promise<string[]> {
     .filter((item) => !item.name.includes('.') && !item.metadata)
     .map((item) => item.name)
 
-  console.log('[listEventFolders] ✅ Carpetas encontradas:', folders)
   return folders
 }
 
