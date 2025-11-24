@@ -2,7 +2,7 @@ import sharp from 'sharp'
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { logAction } from '@/lib/supabase'
+import { logAction } from '@/lib/supabase-admin'
 import { checkRateLimit } from '@/lib/rate-limit'
 
 const MAX_SIZE_MB = 50
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     // ✅ Rate limiting PRIMERO (antes de procesar nada)
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
-    
+
     if (!checkRateLimit(ip, 10, 60000)) {
       return NextResponse.json({ error: 'Demasiadas solicitudes. Espera un momento.' }, { status: 429 })
     }
@@ -58,13 +58,13 @@ export async function POST(req: NextRequest) {
 
     const resizedBuffer = needsResize
       ? await sharp(buffer)
-          .resize({
-            width: RESIZE_TARGET,
-            height: RESIZE_TARGET,
-            fit: 'inside',
-            withoutEnlargement: true,
-          })
-          .toBuffer()
+        .resize({
+          width: RESIZE_TARGET,
+          height: RESIZE_TARGET,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .toBuffer()
       : buffer
 
     const hash = hashBuffer(resizedBuffer)

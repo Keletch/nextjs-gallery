@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { listFiles } from '@/lib/supabase'
+import { listFiles } from '@/lib/supabase-admin'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)

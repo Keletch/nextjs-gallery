@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase-admin'
 import sharp from 'sharp'
 
 const BUCKET = 'nextjsGallery'

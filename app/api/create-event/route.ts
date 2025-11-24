@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase-admin'
+import { verifyModerator } from '@/lib/auth-check'
 
 const BUCKET = 'nextjsGallery'
 const DUMMY_PATH = 'shift2025/thumbnails/dummy.webp'
 
 export async function POST(req: NextRequest) {
     try {
+        // 🔒 Verificar permisos de moderador
+        const { authorized, reason } = await verifyModerator()
+        if (!authorized) {
+            console.warn(`[create-event] 🚫 Intento no autorizado: ${reason}`)
+            return NextResponse.json({ error: reason }, { status: 401 })
+        }
+
         const { nombre, ruta, color, logo } = await req.json()
 
         if (!nombre || !ruta) {
@@ -43,8 +51,6 @@ export async function POST(req: NextRequest) {
         for (const folder of folders) {
             const targetPath = `${ruta}/${folder}/dummy.webp`
 
-            console.log(`[create-event] 📁 Copiando dummy a ${targetPath}`)
-
             const { error } = await supabase.storage.from(BUCKET).upload(targetPath, dummyFile, {
                 upsert: false,
             })
@@ -69,8 +75,6 @@ export async function POST(req: NextRequest) {
             console.error('[create-event] ❌ Error al insertar en tabla events:', insertError)
             return NextResponse.json({ error: 'No se pudo registrar el evento' }, { status: 500 })
         }
-
-        console.log(`[create-event] ✅ Evento creado: ${nombre} (${ruta})${logo ? ' con logo personalizado' : ''}`)
         return NextResponse.json({ success: true, evento: { nombre, ruta, logo } })
     } catch (err) {
         console.error('[create-event] ❌ Error general:', err)

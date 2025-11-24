@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { logAction } from '@/lib/supabase'
+import { logAction } from '@/lib/supabase-admin'
 
 export async function POST(req: NextRequest) {
   const entry = await req.json()

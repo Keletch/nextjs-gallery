@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
-import { deleteFile, logAction, supabase } from '@/lib/supabase'
+import { deleteFile, logAction, supabase } from '@/lib/supabase-admin'
 
 export async function POST(req: NextRequest) {
   try {

@@ -44,7 +44,7 @@ export default function GalleryClient() {
     const [images, setImages] = useState<string[]>([])
     const [urls, setUrls] = useState<Record<string, { thumb: string; full: string; evento: string }>>({})
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
-    const [viewportHeight, setViewportHeight] = useState<number>(0)
+
     const [showGridModal, setShowGridModal] = useState(false)
     const [logoUrl, setLogoUrl] = useState<string>('/cdiLogo.png')
     const [logoKey, setLogoKey] = useState<number>(0)
@@ -75,13 +75,6 @@ export default function GalleryClient() {
         window.history.replaceState({}, '', '/gallery')
         setSelectedImage(null)
     }
-
-    useEffect(() => {
-        const updateHeight = () => setViewportHeight(window.innerHeight)
-        updateHeight()
-        window.addEventListener('resize', updateHeight)
-        return () => window.removeEventListener('resize', updateHeight)
-    }, [])
 
     useEffect(() => {
         const fetchEventos = async () => {
@@ -162,7 +155,7 @@ export default function GalleryClient() {
                 color={eventos.find(e => e.ruta === selectedEvent)?.color}
             />
 
-            <div className={styles.container} style={{ height: `${viewportHeight}px` }}>
+            <div className={styles.container}>
                 <div className={styles.topBar}>
                     <select
                         value={selectedEvent}

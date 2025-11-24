@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase-admin'
 import sharp from 'sharp'
 
 const BUCKET = 'nextjsGallery'
@@ -85,18 +85,18 @@ export async function POST(req: NextRequest) {
       console.warn('[transform-image] No se pudo descargar thumbnail, continuando...')
     } else {
       const thumbBuffer = Buffer.from(await thumbFile.arrayBuffer())
-      
+
       // Aplicar mismas transformaciones al thumbnail
       let thumbTransformer = sharp(thumbBuffer)
-      
+
       if (rotation && rotation !== 0) {
         thumbTransformer = thumbTransformer.rotate(rotation)
       }
-      
+
       if (flipH || flipV) {
         thumbTransformer = thumbTransformer.flip(flipV).flop(flipH)
       }
-      
+
       const transformedThumb = await thumbTransformer
         .webp({ quality: 80, effort: 3 })
         .toBuffer()
