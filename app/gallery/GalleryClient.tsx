@@ -47,7 +47,7 @@ export default function GalleryClient() {
 
     const [showGridModal, setShowGridModal] = useState(false)
     const [logoUrl, setLogoUrl] = useState<string>('/cdiLogo.png')
-    const [logoKey, setLogoKey] = useState<number>(0)
+    const [isLogoTransitioning, setIsLogoTransitioning] = useState(false)
 
     const router = useRouter()
     useGallerySpeed()
@@ -128,24 +128,38 @@ export default function GalleryClient() {
         fetchGallery()
     }, [selectedEvent])
 
-    // Update logo when event changes
+    // Update logo when event changes with smooth transition
     useEffect(() => {
-        if (!selectedEvent) {
-            setLogoUrl('/cdiLogo.png')
-            setLogoKey(prev => prev + 1)
-            return
+        const updateLogo = async () => {
+            // Determine new logo URL
+            let newLogoUrl = '/cdiLogo.png'
+
+            if (selectedEvent) {
+                const evento = eventos.find(e => e.ruta === selectedEvent)
+                if (evento?.logo) {
+                    const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
+                    newLogoUrl = `${base}/logos/${evento.logo}.webp`
+                }
+            }
+
+            // Skip transition if URL hasn't changed
+            if (newLogoUrl === logoUrl) return
+
+            // Trigger fade-out
+            setIsLogoTransitioning(true)
+
+            // Wait for fade-out animation (400ms)
+            await new Promise(resolve => setTimeout(resolve, 400))
+
+            // Change logo URL
+            setLogoUrl(newLogoUrl)
+
+            // Trigger fade-in
+            setIsLogoTransitioning(false)
         }
 
-        const evento = eventos.find(e => e.ruta === selectedEvent)
-        if (evento?.logo) {
-            const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
-            setLogoUrl(`${base}/logos/${evento.logo}.webp`)
-            setLogoKey(prev => prev + 1)
-        } else {
-            setLogoUrl('/cdiLogo.png')
-            setLogoKey(prev => prev + 1)
-        }
-    }, [selectedEvent, eventos])
+        updateLogo()
+    }, [selectedEvent, eventos, logoUrl])
 
     return (
         <>
@@ -193,7 +207,11 @@ export default function GalleryClient() {
                     </svg>
                 </button>
 
-                <img key={logoKey} src={logoUrl} alt="Galería" className={styles.logo} />
+                <img
+                    src={logoUrl}
+                    alt="Galería"
+                    className={`${styles.logo} ${isLogoTransitioning ? styles.logoFadeOut : ''}`}
+                />
             </div>
 
             {showGridModal && (

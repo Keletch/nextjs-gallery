@@ -155,14 +155,18 @@
   opacity: 0.8;
   pointer-events: none;
   z-index: 10;
-  animation: fadeInLogo 1.2s ease-out forwards;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+  transition: transform 0.3s ease, opacity 0.4s ease, filter 0.4s ease;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4)) blur(0px);
 }
 
 .logo:hover {
   transform: scale(1.05);
   opacity: 1;
+}
+
+.logoFadeOut {
+  opacity: 0 !important;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4)) blur(8px) !important;
 }
 
 /* ========================================
@@ -712,28 +716,6 @@
     opacity: 0;
   }
 
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fadeInLogo {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 0.8;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(40px);
-    opacity: 0;
-  }
 
   to {
     transform: translateY(0);
