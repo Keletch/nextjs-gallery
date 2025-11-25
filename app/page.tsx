@@ -87,7 +87,7 @@ export default function Home() {
                 <ColorBends {...colorBendsParams} transparent />
             </div>
 
-            <div className={`relative z-10 flex min-h-screen items-center justify-center p-2 sm:p-4 md:p-6 transition-all duration-1000 ease-out ${showContent ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-110 blur-sm'}`}>
+            <div className={`relative z-50 flex min-h-screen items-center justify-center p-2 sm:p-4 md:p-6 transition-all duration-1000 ease-out ${showContent ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-110 blur-sm'}`}>
                 <div className="w-full max-w-7xl h-full flex flex-col justify-center gap-3 py-8 sm:gap-6 sm:py-10 md:gap-8 md:py-12 lg:gap-10 lg:py-16">
 
                     <div className="text-center space-y-2 sm:space-y-4 md:space-y-6 animate-[slideDown_0.8s_ease-out]">
@@ -148,7 +148,7 @@ export default function Home() {
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 to-indigo-600/0 opacity-0 transition-opacity duration-500 group-hover:from-purple-600/20 group-hover:to-indigo-600/20 group-hover:opacity-100" />
                             <div className="relative">
                                 <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:-rotate-12 sm:text-4xl md:mb-3 md:text-5xl">🎯</div>
-                                <h3 className="mb-1 font-mono text-s font-bold text-white sm:text-base md:text-lg lg:text-xl">Organiza y Filtra</h3>
+                                <h3 className="mb-1 font-mono text-sm font-bold text-white sm:text-base md:text-lg lg:text-xl">Organiza y Filtra</h3>
                                 <p className="font-mono text-xs text-white/80 leading-relaxed sm:text-sm">Encuentra rápidamente fotos por evento</p>
                             </div>
                         </div>
