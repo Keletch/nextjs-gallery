@@ -74,7 +74,26 @@ export default function Home() {
             setShowContent(true)
         }, 300)
 
-        return () => clearTimeout(timer)
+        // Track viewport width to only regenerate on width changes (orientation), not height changes (nav bar)
+        let previousWidth = window.innerWidth
+
+        const handleResize = () => {
+            const currentWidth = window.innerWidth
+
+            // Only regenerate if width changed (orientation change or desktop resize)
+            // Ignore height changes (mobile browser navigation bar)
+            if (currentWidth !== previousWidth) {
+                previousWidth = currentWidth
+                setColorBendsParams(generateColorBendsParams())
+            }
+        }
+
+        window.addEventListener('resize', handleResize)
+
+        return () => {
+            clearTimeout(timer)
+            window.removeEventListener('resize', handleResize)
+        }
     }, [])
 
     if (!mounted || !colorBendsParams) {
@@ -83,7 +102,7 @@ export default function Home() {
 
     return (
         <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide">
-            <div className="fixed inset-0 z-0">
+            <div className="absolute inset-0 z-0">
                 <ColorBends {...colorBendsParams} transparent />
             </div>
 
@@ -92,7 +111,7 @@ export default function Home() {
 
                     <div className="text-center space-y-2 sm:space-y-4 md:space-y-6 animate-[slideDown_0.8s_ease-out]">
                         <div className="inline-block">
-                            <h1 className="font-mono text-3xl font-black tracking-tight text-[#00ffa3] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl">
+                            <h1 className="font-mono text-5xl font-black tracking-tight text-[#00ffa3] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl">
                                 Galería CDI
                             </h1>
                         </div>
@@ -134,8 +153,8 @@ export default function Home() {
                         </Link>
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:gap-5">
-                        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-pink-500/15 via-red-500/15 to-orange-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-105 hover:shadow-[0_0_40px_rgba(255,100,150,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:gap-5">
+                        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-pink-500/15 via-red-500/15 to-orange-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(255,100,150,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
                             <div className="absolute inset-0 bg-gradient-to-br from-pink-600/0 to-orange-600/0 opacity-0 transition-opacity duration-500 group-hover:from-pink-600/20 group-hover:to-orange-600/20 group-hover:opacity-100" />
                             <div className="relative">
                                 <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 sm:text-4xl md:mb-3 md:text-5xl">📸</div>
@@ -144,7 +163,7 @@ export default function Home() {
                             </div>
                         </div>
 
-                        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500/15 via-blue-500/15 to-indigo-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-105 hover:shadow-[0_0_40px_rgba(150,100,255,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
+                        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500/15 via-blue-500/15 to-indigo-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(150,100,255,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 to-indigo-600/0 opacity-0 transition-opacity duration-500 group-hover:from-purple-600/20 group-hover:to-indigo-600/20 group-hover:opacity-100" />
                             <div className="relative">
                                 <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:-rotate-12 sm:text-4xl md:mb-3 md:text-5xl">🎯</div>
@@ -153,10 +172,10 @@ export default function Home() {
                             </div>
                         </div>
 
-                        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500/15 via-teal-500/15 to-green-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-105 hover:shadow-[0_0_40px_rgba(100,255,200,0.3)] sm:col-span-3 sm:rounded-2xl sm:p-4 md:col-span-1 md:p-5 lg:p-6">
+                        <div className="group relative col-span-2 overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500/15 via-teal-500/15 to-green-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-100 sm:col-span-3 sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(100,255,200,0.3)] sm:rounded-2xl sm:p-4 md:col-span-1 md:p-5 lg:p-6">
                             <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/0 to-green-600/0 opacity-0 transition-opacity duration-500 group-hover:from-cyan-600/20 group-hover:to-green-600/20 group-hover:opacity-100" />
                             <div className="relative">
-                                <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 sm:text-4xl md:mb-3 md:text-5xl">✨</div>
+                                <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-4 sm:text-4xl md:mb-3 md:text-5xl">✨</div>
                                 <h3 className="mb-1 font-mono text-sm font-bold text-white sm:text-base md:text-lg lg:text-xl">Experiencia Premium</h3>
                                 <p className="font-mono text-xs text-white/80 leading-relaxed sm:text-sm">Interfaz moderna con diseño fluido y responsivo</p>
                             </div>
