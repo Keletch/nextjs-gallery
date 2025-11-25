@@ -157,7 +157,7 @@ export default function Home() {
                         <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-pink-500/15 via-red-500/15 to-orange-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(255,100,150,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
                             <div className="absolute inset-0 bg-gradient-to-br from-pink-600/0 to-orange-600/0 opacity-0 transition-opacity duration-500 group-hover:from-pink-600/20 group-hover:to-orange-600/20 group-hover:opacity-100" />
                             <div className="relative">
-                                <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 sm:text-4xl md:mb-3 md:text-5xl">📸</div>
+                                <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-4 sm:text-4xl md:mb-3 md:text-5xl">📸</div>
                                 <h3 className="mb-1 font-mono text-sm font-bold text-white sm:text-base md:text-lg lg:text-xl">Captura Momentos</h3>
                                 <p className="font-mono text-xs text-white/80 leading-relaxed sm:text-sm">Sube y comparte tus mejores fotografías de cada evento</p>
                             </div>
@@ -166,7 +166,7 @@ export default function Home() {
                         <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500/15 via-blue-500/15 to-indigo-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(150,100,255,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 to-indigo-600/0 opacity-0 transition-opacity duration-500 group-hover:from-purple-600/20 group-hover:to-indigo-600/20 group-hover:opacity-100" />
                             <div className="relative">
-                                <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:-rotate-12 sm:text-4xl md:mb-3 md:text-5xl">🎯</div>
+                                <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:-rotate-4 sm:text-4xl md:mb-3 md:text-5xl">🎯</div>
                                 <h3 className="mb-1 font-mono text-sm font-bold text-white sm:text-base md:text-lg lg:text-xl">Organiza y Filtra</h3>
                                 <p className="font-mono text-xs text-white/80 leading-relaxed sm:text-sm">Encuentra rápidamente fotos por evento</p>
                             </div>
