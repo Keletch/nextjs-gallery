@@ -1,0 +1,16 @@
+{
+    "name": "Galería CDI",
+    "short_name": "Galería CDI",
+    "description": "Galería interactiva del Club de Inversionistas",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0a",
+    "theme_color": "#0a0a0a",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "any",
+            "type": "image/x-icon"
+        }
+    ]
+}

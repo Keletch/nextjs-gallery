@@ -1,0 +1,13 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://galeria.chu.mx/sitemap.xml
+
+# Block private routes
+Disallow: /moderate
+Disallow: /api/
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
