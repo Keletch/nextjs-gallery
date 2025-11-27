@@ -119,7 +119,7 @@ export default function ModeratePage() {
     <AuthGate>
       <>
         {/* Background effects - absolute con h-screen: reescala en móvil pero NO se estira */}
-        <div className="absolute top-0 left-0 w-full h-screen z-0">
+        <div className="fixed top-0 left-0 w-full h-screen z-0">
           <ColorBends {...colorBendsParams} transparent />
           <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
         </div>
