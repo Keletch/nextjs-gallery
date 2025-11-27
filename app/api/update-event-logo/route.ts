@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'ID de evento requerido' }, { status: 400 })
         }
 
-        // 1. Get current logo hash before updating
+        // Get current logo hash before updating
         const { data: currentEvent, error: fetchError } = await supabase
             .from('events')
             .select('logo')
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: fetchError.message }, { status: 500 })
         }
 
-        // 2. Delete old logo from Storage if it exists
+        // Delete old logo from Storage if it exists
         if (currentEvent?.logo) {
             const oldLogoPath = `logos/${currentEvent.logo}.webp`
             const { error: deleteError } = await supabase.storage
@@ -34,11 +34,11 @@ export async function POST(req: NextRequest) {
                 console.warn('[update-event-logo] Could not delete old logo:', deleteError)
                 // Don't fail the request if deletion fails, just log it
             } else {
-                console.log(`[update-event-logo] ✅ Deleted old logo: ${oldLogoPath}`)
+
             }
         }
 
-        // 3. Update event with new logo hash
+        // Update event with new logo hash
         const { error } = await supabase
             .from('events')
             .update({ logo })
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: error.message }, { status: 500 })
         }
 
-        console.log(`[update-event-logo] ✅ Logo updated for event ${eventId}`)
+
         return NextResponse.json({ success: true })
     } catch (err) {
         console.error('[update-event-logo] Error:', err)

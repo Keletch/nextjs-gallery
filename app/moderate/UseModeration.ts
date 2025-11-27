@@ -71,7 +71,7 @@ export function useModeration(evento: string, folder: Folder) {
         const allLogs = await res.json()
         setLogs(allLogs)
       } catch (err) {
-        console.error('❌ Error al cargar logs:', err)
+        console.error('Error al cargar logs:', err)
         setStatus('No se pudieron cargar los logs')
       }
     }

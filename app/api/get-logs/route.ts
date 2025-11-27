@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data)
   } catch (err) {
-    console.error('[get-logs] ❌ Error al obtener logs:', err)
+    console.error('[get-logs] Error al obtener logs:', err)
     return NextResponse.json([], { status: 500 })
   }
 }

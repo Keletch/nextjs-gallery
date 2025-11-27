@@ -10,11 +10,11 @@ export async function GET() {
     try {
         const { data, error } = await supabase
             .from('events')
-            .select('id, nombre, ruta, color, logo') // ← incluye ruta para el selector
-            .order('nombre', { ascending: true }) // ← orden alfabético
+            .select('id, nombre, ruta, color, logo')
+            .order('nombre', { ascending: true })
 
         if (error || !data) {
-            console.error('[public-events] ❌ Error al obtener eventos:', error)
+            console.error('[public-events] Error al obtener eventos:', error)
             return NextResponse.json([], { status: 500 })
         }
 
@@ -22,7 +22,7 @@ export async function GET() {
         response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600')
         return response
     } catch (err) {
-        console.error('[public-events] ❌ Error inesperado:', err)
+        console.error('[public-events] Error inesperado:', err)
         return NextResponse.json([], { status: 500 })
     }
 }

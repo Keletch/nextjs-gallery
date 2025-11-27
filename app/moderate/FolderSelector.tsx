@@ -1,5 +1,4 @@
 'use client'
-import styles from './ModeratePage.module.css'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 

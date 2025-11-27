@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       return transformer.webp({ quality: 95, effort: 4 }).toBuffer()
     }
 
-    // 1. Transformar imagen original
+    // Transformar imagen original
     const { data: originalFile, error: downloadError } = await supabase.storage
       .from(BUCKET)
       .download(originalPath)
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 2. Transformar thumbnail
+    // Transformar thumbnail
     const { data: thumbFile, error: thumbDownloadError } = await supabase.storage
       .from(BUCKET)
       .download(thumbPath)

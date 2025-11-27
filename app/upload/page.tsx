@@ -31,7 +31,7 @@ export default function UploadPage() {
   const [progress, setProgress] = useState<'idle' | 'processing' | 'uploading' | 'done' | 'error'>('idle')
   const [progressPercent, setProgressPercent] = useState<number>(0)
   const [descriptionError, setDescriptionError] = useState<boolean>(false)
-  const [honeypot, setHoneypot] = useState<string>('') // ✅ Anti-bot honeypot
+  const [honeypot, setHoneypot] = useState<string>('') // Anti-bot honeypot
   const [colorBendsParams, setColorBendsParams] = useState<ReturnType<typeof generateColorBendsParams> | null>(null)
   const [mounted, setMounted] = useState(false)
   const [showContent, setShowContent] = useState(false)
@@ -103,7 +103,7 @@ export default function UploadPage() {
   })
 
   const handleUpload = async () => {
-    // ✅ Honeypot check (anti-bot)
+    // Honeypot check
     if (honeypot) {
       console.warn('Bot detectado')
       setStatus('Error al procesar solicitud')
@@ -170,7 +170,7 @@ export default function UploadPage() {
 
       {/* Content */}
       <div className={`relative z-50 flex min-h-screen items-center justify-center p-2 sm:p-4 md:p-6 transition-all duration-1000 ease-out ${showContent ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-110 blur-sm'}`}>
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-3xl mt-16 md:mt-0">
           {/* Back button */}
           <button
             onClick={() => router.push('/gallery')}

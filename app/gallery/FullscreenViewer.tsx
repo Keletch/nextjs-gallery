@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { supabaseClient } from '@/lib/supabase-client'
 
 interface FullscreenViewerProps {
@@ -138,19 +138,19 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
   return (
     <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-500" onClick={onClose}>
 
-      {/* 🔹 Estado de Carga con animación de puntos */}
+      {/* Estado de Carga con animación de puntos */}
       {(!imageUrl || !info) && hashValid && (
         <div className="flex items-center text-[#aaa] text-xl font-mono">
           Cargando datos
           <div className="flex ml-1">
-            <span className="animate-bounce delay-0">.</span>
-            <span className="animate-bounce delay-100">.</span>
-            <span className="animate-bounce delay-200">.</span>
+            <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+            <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+            <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
           </div>
         </div>
       )}
 
-      {/* 🔹 Imagen con Fade-In */}
+      {/* Imagen con Fade-In */}
       {imageUrl && (
         <img
           src={imageUrl}
@@ -160,7 +160,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
         />
       )}
 
-      {/* 🔹 Información con efecto Typewriter */}
+      {/* Información con efecto Typewriter */}
       {info && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md p-6 rounded-2xl text-[#eaeaea] max-w-[90vw] w-[600px] text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 animate-in slide-in-from-bottom-5 duration-700 delay-300">
           <p className="mb-2 text-lg">

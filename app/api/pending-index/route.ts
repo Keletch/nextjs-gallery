@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   try {
     const files = await listFiles(folder)
 
-    // 🧹 Excluir dummy.webp
+    // Excluir dummy.webp
     const visibles = files.filter(file => file !== 'dummy.webp')
 
     return NextResponse.json(visibles)

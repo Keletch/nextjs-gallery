@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const BUCKET = 'nextjsGallery'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_SIZE_MB = 10 // Logos don't need to be huge
+const MAX_SIZE_MB = 10
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

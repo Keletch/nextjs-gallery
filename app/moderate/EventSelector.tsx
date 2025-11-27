@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import styles from './ModeratePage.module.css'
 
 type Event = {
   id: string
@@ -115,13 +114,13 @@ export default function EventSelector({
         throw new Error('Error al actualizar evento')
       }
 
-      setStatus('✅ Logo actualizado correctamente')
+      setStatus('Logo actualizado correctamente')
       setShowLogoUpload(false)
       setLogoFile(null)
       setLogoPreview(null)
       await fetchEvents()
     } catch (err) {
-      setStatus(`❌ ${err instanceof Error ? err.message : 'Error al actualizar logo'}`)
+      setStatus(`${err instanceof Error ? err.message : 'Error al actualizar logo'}`)
     } finally {
       setUploadingLogo(false)
     }
@@ -144,11 +143,11 @@ export default function EventSelector({
         throw new Error('Error al actualizar color')
       }
 
-      setStatus('✅ Color actualizado correctamente')
+      setStatus('Color actualizado correctamente')
       setShowColorPicker(false)
       await fetchEvents()
     } catch (err) {
-      setStatus(`❌ ${err instanceof Error ? err.message : 'Error al actualizar color'}`)
+      setStatus(`${err instanceof Error ? err.message : 'Error al actualizar color'}`)
     } finally {
       setUpdatingColor(false)
     }
@@ -169,17 +168,17 @@ export default function EventSelector({
 
   return (
     <>
-      <div className={styles.panel}>
-        <label>Selecciona evento:</label>
+      <div className="mb-4">
+        <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Selecciona evento:</label>
         <select
           value={selected}
           onChange={e => onChange(e.target.value)}
           disabled={loading}
-          className={styles.select}
+          className="w-full px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 cursor-pointer"
         >
-          <option value="">-- Selecciona --</option>
+          <option value="" className="bg-gray-900">Selecciona un evento</option>
           {eventos.map(ev => (
-            <option key={ev.id} value={ev.ruta}>
+            <option key={ev.id} value={ev.ruta} className="bg-gray-900">
               {ev.nombre}
             </option>
           ))}
@@ -187,78 +186,57 @@ export default function EventSelector({
       </div>
 
       {selectedEvent && (
-        <div className={styles.panel} style={{ marginTop: '1rem' }}>
-          <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem', color: '#eaeaea' }}>
+        <div className="mt-6 p-6 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <h4 className="text-lg font-bold text-white mb-4 font-mono">
             Configuración actual del evento
           </h4>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Color Section */}
             <div>
-              <label style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: '0.5rem', display: 'block' }}>
+              <label className="block font-mono text-sm font-semibold text-white/70 mb-2">
                 Color de fondo:
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '8px',
-                  backgroundColor: selectedEvent.color || '#000000',
-                  border: '2px solid #444',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-                }} />
-                <span style={{ fontSize: '0.9rem', color: '#eaeaea' }}>
-                  {selectedEvent.color || '#000000'}
-                </span>
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-lg border-2 border-white/30 shadow-lg"
+                  style={{ backgroundColor: selectedEvent.color || '#000000' }}
+                />
+                <span className="font-mono text-sm text-white">{selectedEvent.color || '#000000'}</span>
               </div>
             </div>
 
             {/* Logo Section */}
             <div>
-              <label style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: '0.5rem', display: 'block' }}>
+              <label className="block font-mono text-sm font-semibold text-white/70 mb-2">
                 Logotipo:
               </label>
               {selectedEvent.logo ? (
-                <div style={{
-                  width: '100%',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  border: '1px solid #444'
-                }}>
+                <div className="h-12 flex items-center bg-white/5 rounded-lg px-3 border border-white/10">
                   <img
                     src={`https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery/logos/${selectedEvent.logo}.webp`}
                     alt="Logo del evento"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
+                    className="max-w-full max-h-full object-contain"
                   />
                 </div>
               ) : (
-                <p style={{ fontSize: '0.85rem', color: '#666', margin: 0 }}>
-                  Sin logo personalizado
-                </p>
+                <p className="text-sm text-white/50 font-mono">Sin logo personalizado</p>
               )}
             </div>
           </div>
 
           {/* Action Buttons */}
           {!showColorPicker && !showLogoUpload && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={() => setShowColorPicker(true)}
-                className={styles.button}
+                className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-102"
               >
                 Cambiar color
               </button>
               <button
                 onClick={() => setShowLogoUpload(true)}
-                className={styles.button}
+                className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-102"
               >
                 {selectedEvent.logo ? 'Reemplazar logo' : 'Agregar logo'}
               </button>
@@ -267,47 +245,43 @@ export default function EventSelector({
 
           {/* Color Picker UI */}
           {showColorPicker && (
-            <div style={{ marginTop: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+            <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="flex items-center gap-3 mb-4">
                 <input
                   type="color"
                   value={newColor}
                   onChange={e => setNewColor(e.target.value)}
-                  style={{ width: '60px', height: '60px', border: 'none', cursor: 'pointer', borderRadius: '8px' }}
+                  className="w-16 h-16 rounded-lg cursor-pointer border-2 border-white/20"
                   disabled={updatingColor}
                 />
-                <div style={{ flex: 1 }}>
-                  <input
-                    type="text"
-                    value={newColor}
-                    onChange={e => setNewColor(e.target.value)}
-                    className={styles.input}
-                    placeholder="#000000"
-                    disabled={updatingColor}
-                    style={{ marginBottom: 0 }}
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={newColor}
+                  onChange={e => setNewColor(e.target.value)}
+                  placeholder="#000000"
+                  disabled={updatingColor}
+                  className="flex-1 px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                />
               </div>
 
               {status && (
-                <p style={{ fontSize: '0.9rem', color: status.includes('✅') ? '#4caf50' : '#ff6b6b', marginBottom: '1rem' }}>
+                <p className={`text-sm font-mono mb-4 ${status.includes('correctamente') ? 'text-green-400' : 'text-red-400'}`}>
                   {status}
                 </p>
               )}
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="flex gap-2">
                 <button
                   onClick={handleUpdateColor}
-                  className={styles.button}
                   disabled={updatingColor}
-                  style={{ flex: 1 }}
+                  className="flex-1 px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {updatingColor ? 'Actualizando...' : 'Confirmar'}
                 </button>
                 <button
                   onClick={handleCancelColor}
-                  className={styles.button}
                   disabled={updatingColor}
+                  className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancelar
                 </button>
@@ -317,71 +291,52 @@ export default function EventSelector({
 
           {/* Logo Upload UI */}
           {showLogoUpload && (
-            <div style={{ marginTop: '1rem' }}>
+            <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
               <div
                 {...getRootProps()}
-                style={{
-                  border: isDragActive ? '2px dashed #4caf50' : '2px dashed #444',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: isDragActive ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                  transition: 'all 0.3s ease',
-                  marginBottom: '1rem'
-                }}
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 mb-4 ${isDragActive ? 'border-cyan-500/60 bg-cyan-500/10' : 'border-white/20 bg-white/5 hover:border-cyan-500/40'
+                  }`}
               >
                 <input {...getInputProps()} disabled={uploadingLogo} />
-                <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem' }}>
+                <p className="font-mono text-white/70 text-sm">
                   {isDragActive
                     ? 'Suelta el logo aquí...'
                     : 'Arrastra una imagen o haz clic para seleccionar'}
                 </p>
-                <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '8px' }}>
+                <p className="text-xs text-white/50 mt-2">
                   Máx {MAX_LOGO_SIZE_MB}MB • JPG, PNG, WebP
                 </p>
               </div>
 
               {logoPreview && (
-                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                <div className="mb-4 text-center">
                   <img
                     src={logoPreview}
                     alt="Preview"
-                    style={{
-                      maxWidth: '200px',
-                      maxHeight: '80px',
-                      objectFit: 'contain',
-                      border: '1px solid #444',
-                      borderRadius: '8px',
-                      padding: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                    }}
+                    className="max-w-[200px] max-h-20 mx-auto object-contain border border-white/20 rounded-lg p-2 bg-white/5"
                   />
-                  <p style={{ fontSize: '0.85rem', color: '#aaa', marginTop: '8px' }}>
-                    {logoFile?.name}
-                  </p>
+                  <p className="text-sm text-white/70 font-mono mt-2">{logoFile?.name}</p>
                 </div>
               )}
 
               {status && (
-                <p style={{ fontSize: '0.9rem', color: status.includes('✅') ? '#4caf50' : '#ff6b6b', marginBottom: '1rem' }}>
+                <p className={`text-sm font-mono mb-4 ${status.includes('correctamente') ? 'text-green-400' : 'text-red-400'}`}>
                   {status}
                 </p>
               )}
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="flex gap-2">
                 <button
                   onClick={handleUploadLogo}
-                  className={styles.button}
                   disabled={!logoFile || uploadingLogo}
-                  style={{ flex: 1 }}
+                  className="flex-1 px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploadingLogo ? 'Subiendo...' : 'Confirmar'}
                 </button>
                 <button
                   onClick={handleCancelLogo}
-                  className={styles.button}
                   disabled={uploadingLogo}
+                  className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancelar
                 </button>

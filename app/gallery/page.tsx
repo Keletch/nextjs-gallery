@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import { supabaseServer } from '@/lib/supabase-server'
 import GalleryClient from './GalleryClient'
 
-// ⚠️ CRÍTICO: Forzar dynamic rendering para metadata
+// Forzar dynamic rendering para metadata
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 

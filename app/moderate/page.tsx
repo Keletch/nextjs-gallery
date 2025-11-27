@@ -118,14 +118,14 @@ export default function ModeratePage() {
   return (
     <AuthGate>
       <>
-        {/* Background effects */}
-        <div className="fixed inset-0 z-0" style={{ width: '100%', height: '100%' }}>
+        {/* Background effects - absolute con h-screen: reescala en móvil pero NO se estira */}
+        <div className="absolute top-0 left-0 w-full h-screen z-0">
           <ColorBends {...colorBendsParams} transparent />
           <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
         </div>
 
         {/* Content */}
-        <div className="relative z-50 w-full max-w-7xl mx-auto">
+        <div className="relative z-50 w-full max-w-7xl mx-auto pb-8">
           <h1 className="text-4xl font-bold text-white mb-8 font-mono drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
             Panel de Moderación
           </h1>

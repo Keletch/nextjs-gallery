@@ -1,7 +1,6 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import styles from './ModeratePage.module.css'
 
 const MAX_LOGO_SIZE_MB = 10
 const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -113,14 +112,14 @@ export default function CreateEventPanel({
 
       const result = await res.json()
       if (res.ok) {
-        setStatus('✅ Evento creado correctamente')
+        setStatus('Evento creado correctamente')
         setSuccess(true)
         if (onCreated) onCreated(ruta)
       } else {
-        setStatus(`❌ Error: ${result.error}`)
+        setStatus(`Error: ${result.error}`)
       }
     } catch (err) {
-      setStatus(`❌ ${err instanceof Error ? err.message : 'Error al crear evento'}`)
+      setStatus(`${err instanceof Error ? err.message : 'Error al crear evento'}`)
     } finally {
       setLoading(false)
     }
@@ -131,145 +130,159 @@ export default function CreateEventPanel({
   }
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.createEventTrigger}>
-        <button onClick={() => setShowPopup(true)} className={styles.button}>
-          Crear evento
-        </button>
-      </div>
+    <div className="mb-6">
+      <button
+        onClick={() => setShowPopup(true)}
+        className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
+      >
+        + Crear evento
+      </button>
 
       {showPopup && (
-        <div className={styles.panel}>
-          <h4>Nuevo evento</h4>
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => !loading && resetForm()}>
+          <div
+            className="w-full max-w-2xl mx-4 bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-[0_24px_80px_rgba(0,0,0,0.7)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-2xl font-bold text-white mb-6 font-mono">Nuevo evento</h4>
 
-          {!success ? (
-            <>
-              <label>Nombre:</label>
-              <input
-                type="text"
-                value={nombre}
-                onChange={e => setNombre(e.target.value)}
-                placeholder="Shift 2025"
-                className={styles.input}
-                disabled={loading}
-              />
+            {!success ? (
+              <>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Nombre:</label>
+                    <input
+                      type="text"
+                      value={nombre}
+                      onChange={e => setNombre(e.target.value)}
+                      placeholder="Shift 2025"
+                      className="w-full px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                      disabled={loading}
+                    />
+                  </div>
 
-              <label>Ruta:</label>
-              <input
-                type="text"
-                value={ruta}
-                onChange={e => setRuta(e.target.value.replace(/\s/g, ''))}
-                placeholder="shift2025"
-                className={styles.input}
-                disabled={loading}
-              />
+                  <div>
+                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Ruta:</label>
+                    <input
+                      type="text"
+                      value={ruta}
+                      onChange={e => setRuta(e.target.value.replace(/\s/g, ''))}
+                      placeholder="shift2025"
+                      className="w-full px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                      disabled={loading}
+                    />
+                  </div>
 
-              <label>Color de fondo:</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                <input
-                  type="color"
-                  value={color}
-                  onChange={e => setColor(e.target.value)}
-                  style={{ width: '50px', height: '50px', border: 'none', cursor: 'pointer' }}
-                  disabled={loading}
-                />
-                <span>{color}</span>
-              </div>
+                  <div>
+                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Color de fondo:</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={e => setColor(e.target.value)}
+                        className="w-16 h-16 rounded-lg cursor-pointer border-2 border-white/20"
+                        disabled={loading}
+                      />
+                      <span className="font-mono text-white">{color}</span>
+                    </div>
+                  </div>
 
-              {/* Honeypot oculto */}
-              <input
-                type="text"
-                name="website"
-                value={honeypot}
-                onChange={(e) => setHoneypot(e.target.value)}
-                style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
-                tabIndex={-1}
-                autoComplete="off"
-                aria-hidden="true"
-              />
-
-              <label>Logotipo del evento (opcional):</label>
-              <div
-                {...getRootProps()}
-                style={{
-                  border: isDragActive ? '2px dashed #4caf50' : '2px dashed #444',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: isDragActive ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                  transition: 'all 0.3s ease',
-                  marginBottom: '15px'
-                }}
-              >
-                <input {...getInputProps()} disabled={loading} />
-                <p style={{ margin: 0, color: '#aaa' }}>
-                  {isDragActive
-                    ? 'Suelta el logo aquí...'
-                    : 'Arrastra una imagen o haz clic para seleccionar'}
-                </p>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '8px' }}>
-                  Máx {MAX_LOGO_SIZE_MB}MB • JPG, PNG, WebP
-                </p>
-              </div>
-
-              {logoPreview && (
-                <div style={{ marginBottom: '15px', textAlign: 'center' }}>
-                  <img
-                    src={logoPreview}
-                    alt="Logo preview"
-                    style={{
-                      maxWidth: '200px',
-                      maxHeight: '100px',
-                      objectFit: 'contain',
-                      border: '1px solid #444',
-                      borderRadius: '4px',
-                      padding: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                    }}
+                  {/* Honeypot oculto */}
+                  <input
+                    type="text"
+                    name="website"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
                   />
-                  <p style={{ fontSize: '0.9rem', color: '#aaa', marginTop: '8px' }}>
-                    {logoFile?.name}
-                  </p>
+
+                  <div>
+                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Logotipo del evento (opcional):</label>
+                    <div
+                      {...getRootProps()}
+                      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 ${isDragActive ? 'border-cyan-500/60 bg-cyan-500/10' : 'border-white/20 bg-white/5 hover:border-cyan-500/40'
+                        }`}
+                    >
+                      <input {...getInputProps()} disabled={loading} />
+                      <p className="font-mono text-white/70">
+                        {isDragActive
+                          ? 'Suelta el logo aquí...'
+                          : 'Arrastra una imagen o haz clic para seleccionar'}
+                      </p>
+                      <p className="text-xs text-white/50 mt-2">
+                        Máx {MAX_LOGO_SIZE_MB}MB • JPG, PNG, WebP
+                      </p>
+                    </div>
+
+                    {logoPreview && (
+                      <div className="mt-4 text-center">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="max-w-[200px] max-h-[100px] mx-auto object-contain border border-white/20 rounded-lg p-2 bg-white/5"
+                        />
+                        <p className="text-sm text-white/70 font-mono mt-2">{logoFile?.name}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {confirming && !loading && (
+                    <p className="p-4 bg-cyan-500/20 backdrop-blur-xl border border-cyan-500/30 rounded-xl text-white font-mono text-sm">
+                      ¿Confirmas crear el evento <strong>{nombre}</strong> con ruta <strong>{ruta}</strong>?
+                    </p>
+                  )}
+
+                  {loading && (
+                    <div className="text-center">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-r-transparent"></div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={handleCreate}
+                      disabled={loading}
+                      className="flex-1 px-6 py-3 rounded-xl font-mono font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
+                    >
+                      {loading ? 'Creando...' : confirming ? 'Confirmar creación' : 'Crear'}
+                    </button>
+                    <button
+                      onClick={resetForm}
+                      disabled={loading}
+                      className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
-              )}
-
-              {confirming && !loading && (
-                <p className={styles.status}>
-                  ¿Confirmas crear el evento <strong>{nombre}</strong> con ruta <strong>{ruta}</strong>?
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-2xl mb-6 text-green-400 font-mono font-bold">
+                  ¡Evento creado con éxito!
                 </p>
-              )}
-
-              {loading && (
-                <div className={styles.spinner}></div>
-              )}
-
-              <div className={styles.buttonRow}>
-                <button onClick={handleCreate} className={styles.button} disabled={loading}>
-                  {loading ? 'Creando...' : confirming ? 'Confirmar creación' : 'Crear'}
-                </button>
-                <button onClick={resetForm} className={styles.button} disabled={loading}>
-                  Cancelar
-                </button>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={handleReload}
+                    className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-gradient-to-r from-green-500/30 to-cyan-500/30 border-2 border-green-500/50 cursor-pointer transition-all duration-300 hover:scale-105"
+                  >
+                    Recargar página
+                  </button>
+                  <button
+                    onClick={resetForm}
+                    className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10"
+                  >
+                    Cerrar
+                  </button>
+                </div>
               </div>
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <p style={{ fontSize: '1.2rem', marginBottom: '1.5rem', color: '#4caf50' }}>
-                ¡Evento creado con éxito!
-              </p>
-              <div className={styles.buttonRow} style={{ justifyContent: 'center' }}>
-                <button onClick={handleReload} className={styles.button} style={{ backgroundColor: 'rgba(76, 175, 80, 0.2)', color: '#4caf50', border: '1px solid #4caf50' }}>
-                  Recargar página
-                </button>
-                <button onClick={resetForm} className={styles.button}>
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {status && !success && <p className={styles.status}>{status}</p>}
+            {status && !success && <p className="mt-4 text-center font-mono text-sm text-white/80">{status}</p>}
+          </div>
         </div>
       )}
     </div>

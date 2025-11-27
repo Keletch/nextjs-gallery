@@ -65,7 +65,7 @@ function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'even
     }, 1000)
   }
 
-  // ✅ Inicializar baúl
+  // Inicializar baúl
   useEffect(() => {
     // Al montar (gracias al key={eventId}), empezamos de 0
     setActiveIndices([])

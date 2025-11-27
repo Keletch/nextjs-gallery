@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('[approved] ❌ Error al mover imagen:', err)
+    console.error('[approved] Error al mover imagen:', err)
     return NextResponse.json({ error: 'No se pudo mover la imagen' }, { status: 500 })
   }
 }

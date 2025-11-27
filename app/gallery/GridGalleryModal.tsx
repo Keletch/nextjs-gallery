@@ -11,7 +11,7 @@ type GridGalleryModalProps = {
   onClose: () => void
 }
 
-// 🔹 Sub-componente para manejar la carga individual de cada imagen
+// Sub-componente para manejar la carga individual de cada imagen
 function GridImage({ src, alt, onClick, priority }: { src: string, alt: string, onClick: () => void, priority: boolean }) {
   const [isLoading, setIsLoading] = useState(true)
 
@@ -54,7 +54,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
 
   const IMAGES_PER_PAGE = isMobile ? 6 : 8
 
-  // ✅ Fetch de imágenes cuando cambia el filtro
+  // Fetch de imágenes cuando cambia el filtro
   useEffect(() => {
     if (selectedEventFilter === initialEvent) {
       setImages(initialImages)
@@ -128,7 +128,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
     return () => window.removeEventListener('keydown', handleEsc)
   }, [onClose])
 
-  // ✅ Reset completo cuando cambia el filtro
+  // Reset completo cuando cambia el filtro
   useEffect(() => {
     setPage(0)
   }, [selectedEventFilter])

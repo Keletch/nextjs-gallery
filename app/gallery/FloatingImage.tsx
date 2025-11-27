@@ -39,7 +39,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
   const aberration = useRef<number>(0)
   const lastFrameTime = useRef<number>(performance.now())
 
-  // 🔹 Variables para tilt
+  // Variables para tilt
   const targetRotation = useRef(new Euler())
   const maxTilt = 0.3
 
@@ -52,13 +52,13 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
   }, [])
 
   useFrame(() => {
-    // ✅ PAUSAR TODO si la pestaña está oculta
+    // PAUSAR TODO si la pestaña está oculta
     if (document.hidden) {
       lastFrameTime.current = performance.now()
       return
     }
 
-    // ✅ Si está forzada a oculta, no renderizar nada
+    // Si está forzada a oculta, no renderizar nada
     if (forceHidden) {
       if (ref.current) {
         ref.current.visible = false
@@ -95,11 +95,11 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
       material.opacity = opacity.current
     }
 
-    // 🔹 Aplica el tilt gradual
+    // Aplica el tilt gradual
     ref.current.rotation.x += (targetRotation.current.x - ref.current.rotation.x) * 0.1
     ref.current.rotation.y += (targetRotation.current.y - ref.current.rotation.y) * 0.1
 
-    // 🔹 Movimiento flotante si no está pausado
+    // Movimiento flotante si no está pausado
     if (activated.current && !paused) {
       position.current[2] += 0.035 * window.__gallerySpeed
       scale.current += (1.5 - scale.current) * 0.02 * window.__gallerySpeed
@@ -118,8 +118,8 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
       setVisible(false)
       aberration.current = 0
       targetRotation.current.set(0, 0, 0)
-      
-      // ✅ Notificar que salió
+
+      // Notificar que salió
       if (onExit) onExit()
     }
   })
@@ -137,7 +137,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
         if (opacity.current < 0.5) return
         e.stopPropagation()
         if (!hoveredRef.current || !e.uv) return
-        // 🔹 Calcula el tilt según posición del cursor
+        // Calcula el tilt según posición del cursor
         targetRotation.current.x = (e.uv.y - 0.5) * maxTilt
         targetRotation.current.y = -(e.uv.x - 0.5) * maxTilt
       }}

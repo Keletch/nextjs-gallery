@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       .eq('imghash', hash)
 
     if (deleteError) {
-      console.error('[delete-image] ❌ Error al eliminar registro en imageInfo:', deleteError)
+      console.error('[delete-image] Error al eliminar registro en imageInfo:', deleteError)
       return NextResponse.json({ error: 'No se pudo eliminar el registro en base de datos' }, { status: 500 })
     }
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('[delete-image] ❌ Error al eliminar imagen:', err)
+    console.error('[delete-image] Error al eliminar imagen:', err)
     return NextResponse.json({ error: 'No se pudo eliminar la imagen' }, { status: 500 })
   }
 }

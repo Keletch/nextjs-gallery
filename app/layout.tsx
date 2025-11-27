@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
 
-// ⚙️ Ignora los warnings de Supabase en modo dev
+// Ignora los warnings de Supabase en modo dev
 if (process.env.NODE_ENV === 'development') {
     const originalError = console.error
     console.error = (...args) => {
@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'development') {
     }
 }
 
-// ⚡ Optimización de fonts
+// Optimización de fonts
 const geistSans = Geist({
     variable: "--font-geist-sans",
     subsets: ["latin"],
@@ -105,13 +105,7 @@ export default function RootLayout({
     return (
         <html lang="es">
             <head>
-                {/* 
-          nextJs_InfiniteGallery
-          Developed by: Keletch
-          GitHub: github.com/Keletch
-          Year: 2025
-        */}
-                {/* ⚡ Preconnect a Supabase para cargar imágenes más rápido */}
+                {/* Preconnect a Supabase para cargar imágenes más rápido */}
                 <link rel="preconnect" href="https://sinpfcbinaiasorunmpz.supabase.co" />
                 <link rel="dns-prefetch" href="https://sinpfcbinaiasorunmpz.supabase.co" />
             </head>
