@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import ColorBends from '@/components/ColorBends'
+import Noise from '@/components/Noise'
 
 function generateRandomColors(): string[] {
     const numColors = 3 + Math.floor(Math.random() * 2)
@@ -51,13 +52,13 @@ function generateColorBendsParams() {
     return {
         colors: generateRandomColors(),
         rotation: Math.random() * 360,
-        speed: 0.2 + Math.random() * 1.3,
+        speed: 0.2 + Math.random() * 0.5,
         scale: Math.random() * 2,
         frequency: 1 + Math.random() * 2,
         warpStrength: 1,
         mouseInfluence: 1.2,
         parallax: Math.random(),
-        noise: 0.1,
+        noise: 0, // Noise handled by separate overlay component
     }
 }
 
@@ -74,25 +75,8 @@ export default function Home() {
             setShowContent(true)
         }, 300)
 
-        // Track viewport width to only regenerate on width changes (orientation), not height changes (nav bar)
-        let previousWidth = window.innerWidth
-
-        const handleResize = () => {
-            const currentWidth = window.innerWidth
-
-            // Only regenerate if width changed (orientation change or desktop resize)
-            // Ignore height changes (mobile browser navigation bar)
-            if (currentWidth !== previousWidth) {
-                previousWidth = currentWidth
-                setColorBendsParams(generateColorBendsParams())
-            }
-        }
-
-        window.addEventListener('resize', handleResize)
-
         return () => {
             clearTimeout(timer)
-            window.removeEventListener('resize', handleResize)
         }
     }, [])
 
@@ -102,8 +86,9 @@ export default function Home() {
 
     return (
         <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide">
-            <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 z-0" style={{ width: '100%', height: '100%' }}>
                 <ColorBends {...colorBendsParams} transparent />
+                <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
             </div>
 
             <div className={`relative z-50 flex min-h-screen items-center justify-center p-2 sm:p-4 md:p-6 transition-all duration-1000 ease-out ${showContent ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-110 blur-sm'}`}>
@@ -153,7 +138,7 @@ export default function Home() {
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:gap-5">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4 lg:gap-5">
                         <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-pink-500/15 via-red-500/15 to-orange-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(255,100,150,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
                             <div className="absolute inset-0 bg-gradient-to-br from-pink-600/0 to-orange-600/0 opacity-0 transition-opacity duration-500 group-hover:from-pink-600/20 group-hover:to-orange-600/20 group-hover:opacity-100" />
                             <div className="relative">
@@ -172,31 +157,23 @@ export default function Home() {
                             </div>
                         </div>
 
-                        <div className="group relative col-span-2 overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500/15 via-teal-500/15 to-green-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 hover:scale-100 sm:col-span-3 sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(100,255,200,0.3)] sm:rounded-2xl sm:p-4 md:col-span-1 md:p-5 lg:p-6">
+                        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500/15 via-teal-500/15 to-green-500/15 p-3 backdrop-blur-lg shadow-lg transition-all duration-500 col-span-2 sm:col-span-2 md:col-span-1 hover:scale-100 sm:hover:scale-105 hover:shadow-[0_0_40px_rgba(100,255,200,0.3)] sm:rounded-2xl sm:p-4 md:p-5 lg:p-6">
                             <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/0 to-green-600/0 opacity-0 transition-opacity duration-500 group-hover:from-cyan-600/20 group-hover:to-green-600/20 group-hover:opacity-100" />
                             <div className="relative">
                                 <div className="mb-2 text-3xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-4 sm:text-4xl md:mb-3 md:text-5xl">✨</div>
-                                <h3 className="mb-1 font-mono text-sm font-bold text-white sm:text-base md:text-lg lg:text-xl">Experiencia Premium</h3>
-                                <p className="font-mono text-xs text-white/80 leading-relaxed sm:text-sm">Interfaz moderna con diseño fluido y responsivo</p>
+                                <h3 className="mb-1 font-mono text-sm font-bold text-white sm:text-base md:text-lg lg:text-xl">Acumula Experiencias</h3>
+                                <p className="font-mono text-xs text-white/80 leading-relaxed sm:text-sm">Revive los mejores momentos con la comunidad</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="text-center">
-                        <p className="font-mono text-xs text-white/60 sm:text-sm">Hecho con ❤️ | @CDI @Hyenukchu</p>
+                        <p className="font-mono text-xs text-white/60 sm:text-sm">Hecho con ❤️ | @somoscdi @hyenukchu</p>
                     </div>
                 </div>
             </div>
 
-            <div className="pointer-events-none fixed inset-0 z-20 opacity-20 mix-blend-soft-light">
-                <svg className="h-full w-full">
-                    <filter id="noise">
-                        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch" />
-                        <feColorMatrix type="saturate" values="0" />
-                    </filter>
-                    <rect width="100%" height="100%" filter="url(#noise)" />
-                </svg>
-            </div>
+
         </main>
     )
 }

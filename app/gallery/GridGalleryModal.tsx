@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
-import styles from './GalleryPage.module.css'
 
 type GridGalleryModalProps = {
   initialImages: { id: string; url: string; fullUrl: string; alt?: string }[]
@@ -18,25 +17,20 @@ function GridImage({ src, alt, onClick, priority }: { src: string, alt: string, 
 
   return (
     <div
-      className={styles.gridCell}
+      className="relative aspect-square cursor-pointer animate-in fade-in zoom-in-95 duration-400 group"
       onClick={onClick}
     >
-      <div className={`${styles.gridCellInner} ${isLoading ? styles.loading : ''}`}>
+      <div className={`relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br from-cyan-500/10 to-green-500/10 backdrop-blur-xl border border-white/20 transition-all duration-400 shadow-[0_8px_32px_rgba(0,0,0,0.3)] group-hover:-translate-y-2 group-hover:scale-[1.02] group-hover:shadow-[0_20px_60px_rgba(0,255,200,0.4)] group-hover:border-cyan-500/40 ${isLoading ? 'animate-pulse' : ''}`}>
         <Image
           src={src}
           alt={alt}
-          className={`${styles.gridImage} ${isLoading ? styles.imageLoading : styles.imageLoaded}`}
+          className={`object-cover w-full h-full transition-all duration-400 group-hover:scale-110 group-hover:brightness-110 ${isLoading ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0'}`}
           fill
           sizes="(max-width: 768px) 50vw, 33vw"
           style={{ objectFit: 'cover' }}
           priority={priority}
           onLoad={() => setIsLoading(false)}
         />
-        <div className={styles.gridCellOverlay}>
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
-            <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-          </svg>
-        </div>
       </div>
     </div>
   )
@@ -62,10 +56,6 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
 
   // ✅ Fetch de imágenes cuando cambia el filtro
   useEffect(() => {
-    // Si es la primera carga y coincide con initialImages, no hacemos fetch (opcional, pero ahorra un request)
-    // Pero para simplificar y asegurar consistencia, podemos hacer fetch siempre que cambie el filtro
-    // O mejor: si el filtro es igual al initialEvent, usamos initialImages. Si no, fetch.
-
     if (selectedEventFilter === initialEvent) {
       setImages(initialImages)
       return
@@ -152,33 +142,40 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
   }
 
   return (
-    <div className={styles.gridModalOverlay} onClick={onClose}>
-      <div className={styles.gridModalContent} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[10000] flex items-center justify-center animate-in fade-in duration-400" onClick={onClose}>
+      <div
+        className="w-[90%] max-w-[1400px] h-[85vh] bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl flex flex-col overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.7),0_0_120px_rgba(0,255,200,0.15)] animate-in slide-in-from-bottom-10 duration-500"
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* Header con selector y botón cerrar */}
-        <div className={styles.gridModalHeader}>
-          <div className={styles.headerContent}>
-            <h2>Galería CDI</h2>
-            <p className={styles.headerSubtitle}>
+        <div className="flex justify-between items-center px-8 py-6 bg-gradient-to-r from-cyan-500/15 via-green-500/10 to-cyan-500/15 backdrop-blur-xl border-b border-white/20">
+          <div className="flex flex-col">
+            <h2 className="m-0 text-2xl font-bold text-white font-mono drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Galería CDI</h2>
+            <p className="mt-1 text-sm text-white/70 font-mono">
               {loading ? 'Cargando...' : `${images.length} ${images.length === 1 ? 'imagen' : 'imágenes'}`}
             </p>
           </div>
 
-          <div className={styles.headerActions}>
+          <div className="flex items-center gap-3">
             <select
               value={selectedEventFilter}
               onChange={(e) => setSelectedEventFilter(e.target.value)}
-              className={styles.headerSelect}
+              className="px-4 py-3 bg-white/5 backdrop-blur-xl text-[#eaeaea] border border-white/10 rounded-xl font-mono text-sm font-medium cursor-pointer transition-all duration-300 min-w-[180px] shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
             >
-              <option value="">Todos los eventos</option>
+              <option value="" className="bg-[#1a1a1a] text-[#eaeaea]">Todos los eventos</option>
               {eventos.map((ev) => (
-                <option key={ev.id} value={ev.ruta}>
+                <option key={ev.id} value={ev.ruta} className="bg-[#1a1a1a] text-[#eaeaea]">
                   {ev.nombre}
                 </option>
               ))}
             </select>
 
-            <button onClick={onClose} className={styles.gridCloseButton} aria-label="Cerrar">
+            <button
+              onClick={onClose}
+              className="bg-gradient-to-br from-red-500/20 to-pink-500/20 backdrop-blur-xl border border-red-500/30 text-white cursor-pointer p-3 rounded-xl transition-all duration-300 flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-red-500/50 hover:shadow-[0_0_20px_rgba(255,50,100,0.4)] hover:rotate-90 hover:scale-110 active:scale-95"
+              aria-label="Cerrar"
+            >
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
               </svg>
@@ -187,17 +184,17 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
         </div>
 
         {/* Grid de imágenes */}
-        <div className={styles.gridModalScroll}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 scrollbar-hide">
           {loading ? (
-            <div className={styles.emptyState}>
+            <div className="flex items-center justify-center min-h-[300px] text-white/50 text-base font-mono">
               <p>Cargando imágenes...</p>
             </div>
           ) : images.length === 0 ? (
-            <div className={styles.emptyState}>
+            <div className="flex items-center justify-center min-h-[300px] text-white/50 text-base font-mono">
               <p>No hay imágenes para mostrar</p>
             </div>
           ) : (
-            <div className={styles.gridGallery}>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 w-full">
               {visibleImages.map((img, index) => (
                 <GridImage
                   key={`${img.id}-${selectedEventFilter}`}
@@ -207,19 +204,19 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
                     onSelect(img.fullUrl)
                     onClose()
                   }}
-                  priority={index < 4} // Priorizar las primeras 4 imágenes
+                  priority={index < 4}
                 />
               ))}
             </div>
           )}
 
-          {/* Paginación minimalista compacta */}
+          {/* Paginación */}
           {!loading && totalPages > 1 && (
-            <div className={styles.paginationContainer}>
+            <div className="flex gap-3 mt-8 justify-center items-center px-5 py-3.5 bg-gradient-to-br from-cyan-500/15 to-green-500/15 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] w-fit mx-auto border border-white/20">
               <button
                 onClick={goToPrevPage}
                 disabled={page === 0}
-                className={styles.pageNavButton}
+                className="flex items-center justify-center bg-white/5 backdrop-blur-md border border-white/10 text-[#eaeaea] p-2.5 rounded-lg cursor-pointer transition-all duration-300 min-w-[36px] h-9 hover:bg-cyan-500/20 hover:border-cyan-500/30 hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label="Página anterior"
               >
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -227,14 +224,14 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
                 </svg>
               </button>
 
-              <div className={styles.pageInfo}>
+              <div className="text-white font-mono text-sm font-bold px-3">
                 {page + 1} / {totalPages}
               </div>
 
               <button
                 onClick={goToNextPage}
                 disabled={page === totalPages - 1}
-                className={styles.pageNavButton}
+                className="flex items-center justify-center bg-white/5 backdrop-blur-md border border-white/10 text-[#eaeaea] p-2.5 rounded-lg cursor-pointer transition-all duration-300 min-w-[36px] h-9 hover:bg-cyan-500/20 hover:border-cyan-500/30 hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label="Página siguiente"
               >
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">

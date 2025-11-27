@@ -5,19 +5,15 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import useGallerySpeed from './UseGallerySpeed'
 import FullscreenViewer from './FullscreenViewer'
-import styles from './GalleryPage.module.css'
+import Noise from '@/components/Noise'
 
 // ⚡ Lazy load de componentes pesados (Three.js)
 const GalleryCanvas = dynamic(() => import('./GalleryCanvas'), {
     ssr: false,
-    loading: () => <div style={{ minHeight: '100vh', background: '#0f0f0f' }} />
+    loading: () => <div className="min-h-screen bg-[#0f0f0f]" />
 })
 
 const BackgroundCanvas = dynamic(() => import('./BackgroundCanvas'), {
-    ssr: false,
-})
-
-const GrainOverlay = dynamic(() => import('./GrainOverlay'), {
     ssr: false,
 })
 
@@ -148,8 +144,8 @@ export default function GalleryClient() {
             // Trigger fade-out
             setIsLogoTransitioning(true)
 
-            // Wait for fade-out animation (400ms)
-            await new Promise(resolve => setTimeout(resolve, 400))
+            // Wait for fade-out animation (800ms for smoother effect)
+            await new Promise(resolve => setTimeout(resolve, 800))
 
             // Change logo URL
             setLogoUrl(newLogoUrl)
@@ -163,32 +159,39 @@ export default function GalleryClient() {
 
     return (
         <>
-            <GrainOverlay />
-            <BackgroundCanvas
-                selectedEvent={selectedEvent}
-                color={eventos.find(e => e.ruta === selectedEvent)?.color}
-            />
+            <div className="absolute inset-0 z-0" style={{ width: '100%', height: '100%' }}>
+                <BackgroundCanvas
+                    selectedEvent={selectedEvent}
+                    color={eventos.find(e => e.ruta === selectedEvent)?.color}
+                />
+                <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
+            </div>
 
-            <div className={styles.container}>
-                <div className={styles.topBar}>
+            <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-[#eaeaea] font-mono z-0">
+                <div className="absolute top-6 left-6 z-10 flex flex-wrap gap-4">
                     <select
                         value={selectedEvent}
                         onChange={(e) => setSelectedEvent(e.target.value)}
-                        className={styles.select}
+                        className="px-4 py-3 bg-white/5 backdrop-blur-xl text-[#eaeaea] border border-white/10 rounded-xl font-mono text-sm font-medium cursor-pointer transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:-translate-y-px shadow-[0_8px_32px_rgba(0,0,0,0.3)] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                     >
-                        <option value="">Todos los eventos</option>
+                        <option value="" className="bg-[#1a1a1a] text-[#eaeaea]">Todos los eventos</option>
                         {eventos.map((ev) => (
-                            <option key={ev.id} value={ev.ruta}>
+                            <option key={ev.id} value={ev.ruta} className="bg-[#1a1a1a] text-[#eaeaea]">
                                 {ev.nombre}
                             </option>
                         ))}
                     </select>
-                    <button onClick={() => router.push('/upload')} className={styles.button}>
-                        Subir imagen
+                    <button
+                        onClick={() => router.push('/')}
+                        className="px-5 py-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-xl text-white border border-purple-500/30 rounded-xl font-mono text-sm font-bold cursor-pointer transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(150,100,255,0.3)] hover:-translate-y-0.5 hover:scale-105 active:scale-95"
+                    >
+                        Inicio
                     </button>
                 </div>
 
-                <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={selectedEvent} />
+                <div className="absolute inset-0 z-0">
+                    <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={selectedEvent} />
+                </div>
 
                 {selectedImage && (
                     <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
@@ -196,7 +199,7 @@ export default function GalleryClient() {
 
                 <button
                     onClick={() => setShowGridModal(true)}
-                    className={styles.gridToggleButton}
+                    className="absolute right-5 bottom-[calc(20px+min(120px,20vw)+12px)] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 cursor-pointer transition-all duration-300 z-10 text-[#eaeaea] shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:-translate-y-1 hover:scale-110 active:scale-100"
                     title="Ver en cuadrícula"
                 >
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
@@ -210,7 +213,7 @@ export default function GalleryClient() {
                 <img
                     src={logoUrl}
                     alt="Galería"
-                    className={`${styles.logo} ${isLogoTransitioning ? styles.logoFadeOut : ''}`}
+                    className={`absolute bottom-5 right-5 w-[min(120px,20vw)] h-auto opacity-80 pointer-events-none z-10 transition-all duration-700 ease-in-out drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] hover:scale-105 hover:opacity-100 ${isLogoTransitioning ? 'opacity-0 blur-md scale-95' : 'opacity-80 blur-0 scale-100'}`}
                 />
             </div>
 

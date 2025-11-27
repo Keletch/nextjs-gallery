@@ -25,7 +25,7 @@ function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'even
   const baul = useRef<number[]>([])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // ✅ Pausar/reanudar interval cuando cambia visibilidad
+  // Pausar/reanudar interval cuando cambia visibilidad
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -134,7 +134,7 @@ export default function GalleryCanvas({ images, urls, onSelect, eventId }: Galle
       frameloop="always"
       gl={{ powerPreference: 'high-performance' }}
     >
-      <GalleryScene key={eventId} images={images} urls={urls} onSelect={onSelect} />
+      <GalleryScene images={images} urls={urls} onSelect={onSelect} />
     </Canvas>
   )
 }

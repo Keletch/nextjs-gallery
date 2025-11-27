@@ -136,6 +136,14 @@ export default function ColorBends({
   const pointerTargetRef = useRef<THREE.Vector2>(new THREE.Vector2(0, 0));
   const pointerCurrentRef = useRef<THREE.Vector2>(new THREE.Vector2(0, 0));
   const pointerSmoothRef = useRef<number>(8);
+  const resizeRafRef = useRef<number | null>(null);
+  const needsResizeRef = useRef<boolean>(false);
+
+  // Color interpolation refs
+  const targetColorsRef = useRef<THREE.Vector3[]>([]);
+  const currentColorsRef = useRef<THREE.Vector3[]>([]);
+  const colorTransitionProgressRef = useRef<number>(1); // 1 = completed
+  const colorTransitionDurationRef = useRef<number>(1000); // 1 second
 
   useEffect(() => {
     const container = containerRef.current!;
@@ -187,14 +195,18 @@ export default function ColorBends({
 
     const clock = new THREE.Clock();
 
-    const handleResize = () => {
+    const performResize = () => {
       const w = container.clientWidth || 1;
       const h = container.clientHeight || 1;
       renderer.setSize(w, h, false);
       (material.uniforms.uCanvas.value as THREE.Vector2).set(w, h);
     };
 
-    handleResize();
+    const handleResize = () => {
+      needsResizeRef.current = true;
+    };
+
+    performResize();
 
     if ('ResizeObserver' in window) {
       const ro = new ResizeObserver(handleResize);
@@ -205,22 +217,59 @@ export default function ColorBends({
     }
 
     const loop = () => {
+      // Handle resize in the animation loop to avoid interruptions
+      if (needsResizeRef.current) {
+        performResize();
+        needsResizeRef.current = false;
+      }
+
       const dt = clock.getDelta();
-      const elapsed = clock.elapsedTime;
-      material.uniforms.uTime.value = elapsed;
+      // Clamp delta to prevent jumps when tab is inactive (max 0.1s)
+      const safeDt = Math.min(dt, 0.1);
 
-      const deg = (rotationRef.current % 360) + autoRotateRef.current * elapsed;
-      const rad = (deg * Math.PI) / 180;
-      const c = Math.cos(rad);
-      const s = Math.sin(rad);
-      (material.uniforms.uRot.value as THREE.Vector2).set(c, s);
+      // Manually accumulate time
+      const material = materialRef.current;
+      if (material) {
+        const currentTime = material.uniforms.uTime.value + safeDt;
+        material.uniforms.uTime.value = currentTime;
 
-      const cur = pointerCurrentRef.current;
-      const tgt = pointerTargetRef.current;
-      const amt = Math.min(1, dt * pointerSmoothRef.current);
-      cur.lerp(tgt, amt);
-      (material.uniforms.uPointer.value as THREE.Vector2).copy(cur);
-      renderer.render(scene, camera);
+        // Handle color interpolation
+        if (colorTransitionProgressRef.current < 1) {
+          colorTransitionProgressRef.current += safeDt / (colorTransitionDurationRef.current / 1000);
+          colorTransitionProgressRef.current = Math.min(colorTransitionProgressRef.current, 1);
+
+          // Ease-in-out function
+          const progress = colorTransitionProgressRef.current;
+          const t = progress < 0.5
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+          // Interpolate colors
+          const uColorsArray = material.uniforms.uColors.value as THREE.Vector3[];
+          for (let i = 0; i < MAX_COLORS; i++) {
+            if (currentColorsRef.current[i] && targetColorsRef.current[i]) {
+              const current = currentColorsRef.current[i];
+              const target = targetColorsRef.current[i];
+              uColorsArray[i].lerpVectors(current, target, t);
+            }
+          }
+        }
+
+        const deg = (rotationRef.current % 360) + autoRotateRef.current * currentTime;
+        const rad = (deg * Math.PI) / 180;
+        const c = Math.cos(rad);
+        const s = Math.sin(rad);
+        (material.uniforms.uRot.value as THREE.Vector2).set(c, s);
+
+        const cur = pointerCurrentRef.current;
+        const tgt = pointerTargetRef.current;
+        const amt = Math.min(1, safeDt * pointerSmoothRef.current);
+        cur.lerp(tgt, amt);
+        (material.uniforms.uPointer.value as THREE.Vector2).copy(cur);
+
+        renderer.render(scene, camera);
+      }
+
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
@@ -263,12 +312,24 @@ export default function ColorBends({
     };
 
     const arr = (colors || []).filter(Boolean).slice(0, MAX_COLORS).map(toVec3);
-    for (let i = 0; i < MAX_COLORS; i++) {
-      const vec = (material.uniforms.uColors.value as THREE.Vector3[])[i];
-      if (i < arr.length) vec.copy(arr[i]);
-      else vec.set(0, 0, 0);
+
+    // Initialize color refs if empty (first run)
+    if (currentColorsRef.current.length === 0) {
+      currentColorsRef.current = arr.map(v => v.clone());
+      targetColorsRef.current = arr.map(v => v.clone());
+      const uColorsArray = material.uniforms.uColors.value as THREE.Vector3[];
+      for (let i = 0; i < MAX_COLORS; i++) {
+        if (i < arr.length) uColorsArray[i].copy(arr[i]);
+        else uColorsArray[i].set(0, 0, 0);
+      }
+      material.uniforms.uColorCount.value = arr.length;
+    } else {
+      // Start transition to new colors
+      currentColorsRef.current = (material.uniforms.uColors.value as THREE.Vector3[]).map(v => v.clone());
+      targetColorsRef.current = arr.map(v => v.clone());
+      colorTransitionProgressRef.current = 0; // Start transition
+      material.uniforms.uColorCount.value = arr.length;
     }
-    material.uniforms.uColorCount.value = arr.length;
 
     material.uniforms.uTransparent.value = transparent ? 1 : 0;
     if (renderer) renderer.setClearColor(0x000000, transparent ? 0 : 1);

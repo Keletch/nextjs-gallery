@@ -1,24 +1,17 @@
 'use client'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useRef, useMemo, useEffect, useState } from 'react'
-import * as THREE from 'three'
-import './NebulaMaterial'
+import { useEffect, useState, useRef } from 'react'
+import ColorBends from '@/components/ColorBends'
 
 interface BackgroundCanvasProps {
   selectedEvent: string
   color?: string
 }
 
-// 🔹 Paletas de colores por evento (Legacy / Fallback)
-const EVENT_COLORS: Record<string, { subColor: [number, number, number]; accentColor: [number, number, number] }> = {
-  default: {
-    // Verde oscuro / Bosque profundo
-    subColor: [0.05, 0.25, 0.1],
-    accentColor: [0.0, 0.0, 0.0],
-  },
-}
+// Default color palette (dark green/forest theme)
+// Expanded to 4 colors to match generateColorVariations and prevent interpolation errors
+const DEFAULT_COLORS = ['#0d401a', '#082010', '#06180c', '#041008']
 
-// Helper para convertir Hex a RGB [0-1]
+// Helper to convert Hex to RGB [0-1]
 function hexToRgb(hex: string): [number, number, number] {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result
@@ -30,151 +23,81 @@ function hexToRgb(hex: string): [number, number, number] {
     : [0, 0, 0]
 }
 
-function BackgroundMesh({ selectedEvent, color }: BackgroundCanvasProps) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const { viewport, gl } = useThree()
-  const resolution: [number, number] = [viewport.width, viewport.height]
-  const aspect = resolution[0] / resolution[1]
-  const area = resolution[0] * resolution[1]
-  const seed = useMemo(() => Math.random() * 1000, [])
-
-  // 🔹 Determinar colores iniciales
-  const getColors = () => {
-    if (color) {
-      return {
-        subColor: hexToRgb(color),
-        accentColor: [0.0, 0.0, 0.0] as [number, number, number],
-      }
-    }
-    return EVENT_COLORS[selectedEvent] || EVENT_COLORS.default
+// Helper to convert RGB [0-1] to Hex
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (x: number) => {
+    const hex = Math.round(x * 255).toString(16)
+    return hex.length === 1 ? '0' + hex : hex
   }
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
 
-  // 🔹 Capturar colores iniciales (solo al montar) para evitar que R3F sobrescriba los uniforms
-  const [startColors] = useState(getColors)
+// Interpolate between two RGB arrays
+function lerpRgb(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+  return [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+  ]
+}
 
-  // 🔹 Refs para interpolación de color (inicializados con los colores de arranque)
-  const currentSubColor = useRef(new THREE.Vector3(...startColors.subColor))
-  const currentAccentColor = useRef(new THREE.Vector3(...startColors.accentColor))
+// Generate color variations for ColorBends
+function generateColorVariations(baseColor: string): string[] {
+  const [r, g, b] = hexToRgb(baseColor)
 
-  const targetSubColor = useRef(new THREE.Vector3(...startColors.subColor))
-  const targetAccentColor = useRef(new THREE.Vector3(...startColors.accentColor))
+  // Create variations by adjusting brightness
+  const colors = [
+    baseColor,
+    rgbToHex(Math.min(r * 1.3, 1), Math.min(g * 1.3, 1), Math.min(b * 1.3, 1)),
+    rgbToHex(r * 0.7, g * 0.7, b * 0.7),
+    rgbToHex(r * 0.4, g * 0.4, b * 0.4),
+  ]
 
-  // 🔹 Actualizar objetivos de color cuando cambia el evento o el color prop
-  useEffect(() => {
-    const colors = getColors()
-    targetSubColor.current.set(...colors.subColor)
-    targetAccentColor.current.set(...colors.accentColor)
-  }, [selectedEvent, color])
+  return colors
+}
 
-  // 🔹 Prevenir que el renderer se pierda
-  useEffect(() => {
-    if (gl) {
-      gl.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)) // Reducir DPR máximo para rendimiento
-    }
-  }, [gl])
-
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      const mat = meshRef.current.material as any
-
-      // 🔹 Interpolación suave de colores (Lerp)
-      // Ajusta el 2.0 para cambiar la velocidad de transición
-      const lerpSpeed = 0.5 * delta
-      currentSubColor.current.lerp(targetSubColor.current, lerpSpeed)
-      currentAccentColor.current.lerp(targetAccentColor.current, lerpSpeed)
-
-      // 🔹 Actualizar Uniforms
-      if (mat?.uniforms) {
-        if (mat.uniforms.time) mat.uniforms.time.value = state.clock.getElapsedTime() * 0.4
-
-        // Fix: Assign new Vector2 instead of calling .set() because the initial value might be an array
-        if (mat.uniforms.resolution) mat.uniforms.resolution.value = new THREE.Vector2(resolution[0], resolution[1])
-
-        if (mat.uniforms.aspect) mat.uniforms.aspect.value = aspect
-        if (mat.uniforms.area) mat.uniforms.area.value = area
-
-        // Fix: Assign the Vector3 directly (or a clone) instead of .copy()
-        if (mat.uniforms.subColor) mat.uniforms.subColor.value = currentSubColor.current
-        if (mat.uniforms.accentColor) mat.uniforms.accentColor.value = currentAccentColor.current
-      }
-    }
-  })
-
-  const geometry = useMemo(() => new THREE.PlaneGeometry(...resolution), [resolution[0], resolution[1]])
-
-  return (
-    <mesh ref={meshRef} position={[0, 0, -10]} geometry={geometry}>
-      <nebulaMaterial
-        attach="material"
-        time={0}
-        resolution={resolution}
-        seed={seed}
-        subColor={startColors.subColor}
-        accentColor={startColors.accentColor}
-        aspect={aspect}
-        area={area}
-        transparent
-        depthWrite={false}
-      />
-    </mesh>
-  )
+// Generate random parameters like in home page
+function generateRandomParams() {
+  return {
+    rotation: Math.random() * 360,
+    speed: 0.2 + Math.random() * 0.5,
+    scale: Math.random() * 2,
+    frequency: 1 + Math.random() * 2,
+    warpStrength: 1,
+    mouseInfluence: 1.2,
+    parallax: Math.random(),
+    noise: 0, // Noise handled by separate overlay component
+  }
 }
 
 export default function BackgroundCanvas({ selectedEvent, color }: BackgroundCanvasProps) {
-  const [isVisible, setIsVisible] = useState(true)
-  const [isTabVisible, setIsTabVisible] = useState(true)
-  const canvasRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+  const [colors, setColors] = useState<string[]>(DEFAULT_COLORS)
 
-  // 🔹 Mantener siempre visible en móvil para evitar desmontaje
+  const [colorBendsParams] = useState(() => ({
+    ...generateRandomParams(),
+  }))
+
+  // Initialize on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const isMobile = /Mobi|Android/i.test(navigator.userAgent)
-    if (!isMobile) return
-
-    // En móvil, siempre mantener montado
-    setIsVisible(true)
+    setMounted(true)
   }, [])
 
-  // 🔹 Detectar visibilidad de la pestaña
+  // Update colors when event changes
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabVisible(!document.hidden)
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
+    const newColors = color ? generateColorVariations(color) : DEFAULT_COLORS
+    setColors(newColors)
+  }, [selectedEvent, color])
+
+  if (!mounted) {
+    return (
+      <div className="absolute inset-0 z-[-1] pointer-events-none bg-black" style={{ width: '100%', height: '100%' }} />
+    )
+  }
 
   return (
-    <div
-      ref={canvasRef}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: -1,
-        pointerEvents: 'none',
-      }}
-    >
-      {isVisible && (
-        <Canvas
-          orthographic
-          camera={{ zoom: 100, position: [0, 0, 5] }}
-          style={{
-            position: 'absolute',
-            inset: 0,
-          }}
-          gl={{
-            alpha: true,
-            antialias: false,
-            powerPreference: 'high-performance',
-            preserveDrawingBuffer: true,
-          }}
-          frameloop={isTabVisible ? 'always' : 'never'}
-          dpr={[1, 1.5]}
-        >
-          <BackgroundMesh selectedEvent={selectedEvent} color={color} />
-        </Canvas>
-      )}
+    <div className="absolute inset-0 z-[-1] pointer-events-none" style={{ width: '100%', height: '100%' }}>
+      <ColorBends {...colorBendsParams} colors={colors} transparent />
     </div>
   )
 }
