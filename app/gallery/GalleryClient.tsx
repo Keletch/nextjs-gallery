@@ -167,7 +167,7 @@ export default function GalleryClient() {
                 <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
             </div>
 
-            <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-[#eaeaea] font-mono z-0">
+            <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-[#eaeaea] font-mono z-0" style={{ transform: 'translate3d(0,0,0)' }}>
                 <div className="absolute top-6 left-6 z-10 flex flex-wrap gap-4">
                     <select
                         value={selectedEvent}

@@ -136,68 +136,137 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-500" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose}>
 
-      {/* Estado de Carga con animación de puntos */}
-      {(!imageUrl || !info) && hashValid && (
-        <div className="flex items-center text-[#aaa] text-xl font-mono">
-          Cargando datos
-          <div className="flex ml-1">
-            <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-            <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-            <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+      {/* Layout para móvil: scrollable vertical */}
+      <div className="lg:hidden w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col items-center py-4 px-4" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position', transform: 'translate3d(0,0,0)' }} onClick={onClose}>
+
+        {/* Estado de Carga */}
+        {(!imageUrl || !info) && hashValid && (
+          <div className="flex items-center text-[#aaa] text-xl font-mono my-auto">
+            Cargando datos
+            <div className="flex ml-1">
+              <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+              <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+              <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Imagen con Fade-In */}
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt="fullscreen"
-          className={`max-w-[90vw] max-h-[80vh] object-contain shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'} rounded-2xl`}
-          onLoad={() => setImageLoaded(true)}
-        />
-      )}
+        {/* Imagen */}
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt="fullscreen"
+            className={`w-full max-w-[95vw] object-contain shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'} rounded-2xl`}
+            onLoad={() => setImageLoaded(true)}
+          />
+        )}
 
-      {/* Información con efecto Typewriter */}
-      {info && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md p-6 rounded-2xl text-[#eaeaea] max-w-[90vw] w-[600px] text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 animate-in slide-in-from-bottom-5 duration-700 delay-300">
-          <p className="mb-2 text-lg">
-            <strong className="text-[#00ffa3]">Evento: </strong>
-            <TypewriterText text={info.evento} speed={30} />
-          </p>
-          <p className="mb-2 text-base text-[#ccc]">
-            <strong className="text-[#00ffa3]">Descripción: </strong>
-            <TypewriterText text={info.description} delay={500} speed={20} />
-          </p>
-          <p className="mb-4 text-sm opacity-70 font-mono">
-            <strong>Subido el: </strong>
-            <TypewriterText
-              text={new Date(info.created_at).toLocaleDateString('es-MX', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-              delay={1000}
-              speed={20}
-            />
-          </p>
+        {/* Información */}
+        {info && (
+          <div className="mt-6 mb-4 bg-black/60 backdrop-blur-md p-6 rounded-2xl text-[#eaeaea] max-w-[95vw] w-full text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 animate-in slide-in-from-bottom-5 duration-700 delay-300" onClick={(e) => e.stopPropagation()}>
+            <p className="mb-2 text-lg">
+              <strong className="text-[#00ffa3]">Evento: </strong>
+              <TypewriterText text={info.evento} speed={30} />
+            </p>
+            <p className="mb-2 text-base text-[#ccc]">
+              <strong className="text-[#00ffa3]">Descripción: </strong>
+              <TypewriterText text={info.description} delay={500} speed={20} />
+            </p>
+            <p className="mb-4 text-sm opacity-70 font-mono">
+              <strong>Subido el: </strong>
+              <TypewriterText
+                text={new Date(info.created_at).toLocaleDateString('es-MX', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+                delay={1000}
+                speed={20}
+              />
+            </p>
 
-          <div className="flex flex-wrap gap-3 justify-center mt-4">
-            <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1200ms] cursor-pointer" onClick={shareOnX}>Compartir en X</button>
-            <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1300ms] cursor-pointer" onClick={shareOnWhatsApp}>Compartir en WhatsApp</button>
-            <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1400ms] cursor-pointer" onClick={copyLink}>Copiar enlace</button>
-            <button className="px-4 py-2 bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-purple-500/30 hover:border-purple-500/50 hover:shadow-[0_0_15px_rgba(150,100,255,0.3)] hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1500ms] cursor-pointer" onClick={downloadImage}>Descargar imagen</button>
+            <div className="flex flex-wrap gap-3 justify-center mt-4">
+              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1200ms] cursor-pointer" onClick={shareOnX}>Compartir en X</button>
+              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1300ms] cursor-pointer" onClick={shareOnWhatsApp}>Compartir en WhatsApp</button>
+              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1400ms] cursor-pointer" onClick={copyLink}>Copiar enlace</button>
+              <button className="px-4 py-2 bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-purple-500/30 hover:border-purple-500/50 hover:shadow-[0_0_15px_rgba(150,100,255,0.3)] hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1500ms] cursor-pointer" onClick={downloadImage}>Descargar imagen</button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!hashValid && !info && (
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-black/80 p-4 rounded-xl text-[#f88] text-center">
-          <p>Hash inválido o no se encontró información.</p>
-        </div>
-      )}
+        {!hashValid && !info && (
+          <div className="my-auto bg-black/80 p-4 rounded-xl text-[#f88] text-center">
+            <p>Hash inválido o no se encontró información.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Layout para desktop: diseño original con absolute positioning */}
+      <div className="hidden lg:flex lg:flex-col lg:items-center lg:justify-center lg:w-full lg:h-full">
+
+        {/* Estado de Carga */}
+        {(!imageUrl || !info) && hashValid && (
+          <div className="flex items-center text-[#aaa] text-xl font-mono">
+            Cargando datos
+            <div className="flex ml-1">
+              <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+              <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+              <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Imagen */}
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt="fullscreen"
+            className={`max-w-[90vw] max-h-[80vh] object-contain shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'} rounded-2xl`}
+            onLoad={() => setImageLoaded(true)}
+          />
+        )}
+
+        {/* Información con absolute positioning (diseño original) */}
+        {info && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md p-6 rounded-2xl text-[#eaeaea] max-w-[90vw] w-[600px] text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 animate-in slide-in-from-bottom-5 duration-700 delay-300">
+            <p className="mb-2 text-lg">
+              <strong className="text-[#00ffa3]">Evento: </strong>
+              <TypewriterText text={info.evento} speed={30} />
+            </p>
+            <p className="mb-2 text-base text-[#ccc]">
+              <strong className="text-[#00ffa3]">Descripción: </strong>
+              <TypewriterText text={info.description} delay={500} speed={20} />
+            </p>
+            <p className="mb-4 text-sm opacity-70 font-mono">
+              <strong>Subido el: </strong>
+              <TypewriterText
+                text={new Date(info.created_at).toLocaleDateString('es-MX', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+                delay={1000}
+                speed={20}
+              />
+            </p>
+
+            <div className="flex flex-wrap gap-3 justify-center mt-4">
+              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1200ms] cursor-pointer" onClick={shareOnX}>Compartir en X</button>
+              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1300ms] cursor-pointer" onClick={shareOnWhatsApp}>Compartir en WhatsApp</button>
+              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1400ms] cursor-pointer" onClick={copyLink}>Copiar enlace</button>
+              <button className="px-4 py-2 bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-purple-500/30 hover:border-purple-500/50 hover:shadow-[0_0_15px_rgba(150,100,255,0.3)] hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1500ms] cursor-pointer" onClick={downloadImage}>Descargar imagen</button>
+            </div>
+          </div>
+        )}
+
+        {!hashValid && !info && (
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-black/80 p-4 rounded-xl text-[#f88] text-center">
+            <p>Hash inválido o no se encontró información.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
