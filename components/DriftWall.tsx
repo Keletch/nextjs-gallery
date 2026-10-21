@@ -68,8 +68,11 @@ const prefersReducedMotion = () =>
 // Largo del plano (en el sentido del desplazamiento) respecto a lo que hay que cubrir:
 // margen para la inclinación, la escala y la perspectiva
 const SPAN_FACTOR = 2;
-// Movimiento máximo (px) entre presionar y soltar para contarlo como clic
+// Movimiento máximo (px) entre presionar y soltar para contarlo como clic (el dedo es menos preciso)
 const CLICK_SLOP = 10;
+const TOUCH_SLOP = 18;
+// Tiempo durante el que se descarta el click fantasma que el navegador dispara tras un toque
+const GHOST_CLICK_MS = 800;
 
 const columnFactor = (index: number, variance: number) => {
   const pseudo = ((index * 0.6180339887 + 0.35) % 1) * 2 - 1;
@@ -117,7 +120,9 @@ const DriftWall = ({
   const pointerRef = useRef({ x: 0, y: 0 });
   const pointerDampedRef = useRef({ x: 0, y: 0 });
   const lastTsRef = useRef<number | null>(null);
-  const pressRef = useRef<{ col: number; idx: number; x: number; y: number } | null>(null);
+  const pressRef = useRef<{ col: number; idx: number; x: number; y: number; valid?: boolean } | null>(null);
+  // Hasta cuándo ignorar el click fantasma posterior a abrir una foto con el dedo
+  const suppressClickUntilRef = useRef(0);
 
   const [containerHeight, setContainerHeight] = useState(600);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -352,8 +357,12 @@ const DriftWall = ({
     release();
   }, [release]);
 
-  // Clic: la foto se elige al presionar; al soltar se abre si el puntero casi no se movió,
-  // aunque el carril se haya desplazado bajo el cursor mientras tanto
+  // Abrir una foto. La foto se elige al presionar, así que se abre la correcta aunque el carril
+  // se haya desplazado bajo el cursor mientras tanto.
+  // - Mouse/touchpad: se abre en el evento click.
+  // - Dedo/lápiz: se abre al soltar. No se espera al click porque (1) tras soltar el navegador dispara
+  //   pointerleave antes del click, (2) Chrome "corrige" el punto del toque y (3) si el visor ya se
+  //   abrió, el click fantasma cae sobre su fondo y lo cierra. Ese click fantasma se descarta.
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const tile = (e.target as HTMLElement).closest<HTMLElement>('[data-tile-id]');
@@ -364,17 +373,60 @@ const DriftWall = ({
     pressRef.current = { col: Number(tile.dataset.col), idx: Number(tile.dataset.idx), x: e.clientX, y: e.clientY };
   }, []);
 
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const press = pressRef.current;
-      pressRef.current = null;
-      if (!press || !onItemClick) return;
-      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP) return;
+  const openPressed = useCallback(
+    (press: { col: number; idx: number }) => {
+      if (!onItemClick) return;
       const item = columnItems[press.col]?.[press.idx];
       if (item && !item.href) onItemClick(item);
     },
     [columnItems, onItemClick]
   );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const press = pressRef.current;
+      if (!press) return;
+      const touchLike = e.pointerType !== 'mouse';
+      const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y) > (touchLike ? TOUCH_SLOP : CLICK_SLOP);
+
+      if (!touchLike) {
+        press.valid = !moved; // el click (que llega después) decide
+        return;
+      }
+
+      pressRef.current = null;
+      if (moved) return;
+      suppressClickUntilRef.current = performance.now() + GHOST_CLICK_MS;
+      // Descartar el click fantasma esté donde esté (puede caer sobre el visor recién abierto)
+      const swallow = (ev: MouseEvent) => {
+        if (performance.now() > suppressClickUntilRef.current) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+      };
+      window.addEventListener('click', swallow, { capture: true, once: true });
+      window.setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), GHOST_CLICK_MS);
+      openPressed(press);
+    },
+    [openPressed]
+  );
+
+  const handleClick = useCallback(() => {
+    const press = pressRef.current;
+    pressRef.current = null;
+    if (!press?.valid) return;
+    openPressed(press);
+  }, [openPressed]);
+
+  // Cancelar en origen el click que sigue a un toque que ya abrió una foto
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const onTouchEnd = (e: TouchEvent) => {
+      if (performance.now() < suppressClickUntilRef.current && e.cancelable) e.preventDefault();
+    };
+    container.addEventListener('touchend', onTouchEnd, { passive: false });
+    return () => container.removeEventListener('touchend', onTouchEnd);
+  }, []);
 
   const cssVars = useMemo(
     () =>
@@ -458,6 +510,7 @@ const DriftWall = ({
       onPointerMove={handlePointerMove}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
+      onClick={handleClick}
       onPointerEnter={() => {
         wallHoveredRef.current = true;
       }}
