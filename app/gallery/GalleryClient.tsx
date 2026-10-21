@@ -59,6 +59,8 @@ type WallComposition = {
     tilt: number
     turn: number
     direction: 'up' | 'down'
+    /** Densidad 0–1: 0 = pocas columnas grandes, 1 = muchas pequeñas (dentro del rango de la pantalla) */
+    density: number
 }
 
 const KINDS = ['columnas', 'filas', 'diagonal'] as const
@@ -70,6 +72,12 @@ function randomComposition(): WallComposition {
         ? new URLSearchParams(window.location.search).get('muro')
         : null
     const kind = KINDS.find(k => k === forced) ?? KINDS[Math.floor(Math.random() * KINDS.length)]
+    // Promedio de dos sorteos: carga hacia el medio, los extremos salen de vez en cuando
+    // (en desarrollo, ?densidad=min|max fuerza un extremo para probarlo)
+    const forcedDensity = process.env.NODE_ENV !== 'production' && typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('densidad')
+        : null
+    const density = forcedDensity === 'min' ? 0 : forcedDensity === 'max' ? 1 : (Math.random() + Math.random()) / 2
     return {
         kind,
         orientation: kind === 'filas' || (kind === 'diagonal' && Math.random() < 0.5) ? 'horizontal' : 'vertical',
@@ -77,31 +85,53 @@ function randomComposition(): WallComposition {
         tilt: sign() * (8 + Math.random() * 10),
         turn: sign() * (6 + Math.random() * 10),
         direction: Math.random() < 0.5 ? 'up' : 'down',
+        density,
     }
+}
+
+// Rango de columnas (vistas de frente) y tamaño mínimo de foto por tipo de pantalla
+function densityRange(width: number) {
+    if (width < 640) return { min: 2, max: 4, minTile: 85 }
+    if (width < 1024) return { min: 3, max: 5, minTile: 110 }
+    if (width < 1600) return { min: 4, max: 6, minTile: 150 }
+    if (width < 2400) return { min: 4, max: 7, minTile: 190 }
+    return { min: 5, max: 8, minTile: 230 }
+}
+
+const MAX_SLOT = 440 // foto de ~400 px como máximo
+
+function tileSizeFor(width: number, columns: number) {
+    // Cada columna (ficha + espacio) ocupa su parte del ~82% del ancho; la escala y la perspectiva completan el resto
+    const slot = Math.min(MAX_SLOT, (width * 0.82) / columns)
+    const gap = Math.round(Math.min(26, Math.max(10, slot * 0.09)))
+    return { tileWidth: Math.round(slot - gap), gap }
 }
 
 // Tamaño del muro según la pantalla: fichas proporcionales al ancho y carriles suficientes para
 // llenarla (en diagonal se cubre la proyección de la pantalla rotada, esquinas incluidas)
 function wallLayout(width: number, height: number, composition: WallComposition) {
-    const sizeColumns = width < 640 ? 3 : width < 1024 ? 4 : width < 1600 ? 5 : width < 2400 ? 6 : 7
-    // Cada columna (ficha + espacio) ocupa su parte del ~82% del ancho; la escala y la perspectiva completan el resto
-    const slot = Math.min(380, Math.max(118, (width * 0.82) / sizeColumns))
-    const gap = Math.round(Math.min(26, Math.max(10, slot * 0.09)))
-    const tileWidth = Math.round(slot - gap)
+    // Columnas según la densidad sorteada, sin bajar del tamaño mínimo de foto de esta pantalla
+    const range = densityRange(width)
+    let maxColumns = range.max
+    while (maxColumns > range.min && tileSizeFor(width, maxColumns).tileWidth < range.minTile) maxColumns--
+    const sizeColumns = range.min + Math.round(composition.density * (maxColumns - range.min))
+    const { tileWidth, gap } = tileSizeFor(width, sizeColumns)
     const tileHeight = Math.round(tileWidth * 0.66)
 
     const vertical = composition.orientation === 'vertical'
     const laneSize = (vertical ? tileWidth : tileHeight) + gap
     let lanes: number
     if (composition.roll === 0) {
-        // Filas: cubren todo el alto (arriba y abajo ya hay desvanecido); con el giro de cámara el lado lejano se encoge
-        lanes = vertical ? sizeColumns : Math.max(2, Math.ceil((height * 0.95) / laneSize))
+        // Filas: cubren todo el alto (arriba y abajo ya hay desvanecido). Una fila extra de margen porque
+        // con la inclinación y el giro de cámara el lado lejano se encoge y dejaba esquinas sin cubrir
+        lanes = vertical ? sizeColumns : Math.max(2, Math.ceil((height * 0.95) / laneSize) + 1)
     } else {
         const rad = (composition.roll * Math.PI) / 180
         const crossLen = vertical ? width : height
         const mainLen = vertical ? height : width
         const required = crossLen * Math.abs(Math.cos(rad)) + mainLen * Math.abs(Math.sin(rad))
-        lanes = Math.ceil(required / laneSize) + 2
+        // +3 de margen: con la perspectiva el lado lejano se encoge y las esquinas quedaban al límite
+        lanes = Math.ceil(required / laneSize) + 3
     }
     return { columns: lanes, tileWidth, tileHeight, gap }
 }
