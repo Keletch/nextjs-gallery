@@ -1,14 +1,14 @@
 'use client'
-import { useFrame, useLoader, useThree } from '@react-three/fiber'
-import { TextureLoader, Mesh, Euler } from 'three'
+import { useFrame, useThree } from '@react-three/fiber'
+import { Mesh, Euler, Texture } from 'three'
 import { useEffect, useState, useRef } from 'react'
 import * as THREE from 'three'
 import './AberratedMaterial'
 
 interface FloatingImageProps {
-  textureUrl: string
+  texture: Texture
   delay: number
-  onClick: (url: string) => void
+  onClick: () => void
   onExit?: () => void
   forceHidden?: boolean
 }
@@ -19,8 +19,7 @@ declare global {
   }
 }
 
-export default function FloatingImage({ textureUrl, delay, onClick, onExit, forceHidden }: FloatingImageProps) {
-  const texture = useLoader(TextureLoader, textureUrl)
+export default function FloatingImage({ texture, delay, onClick, onExit, forceHidden }: FloatingImageProps) {
   const ref = useRef<Mesh>(null)
   const { viewport } = useThree()
 
@@ -124,7 +123,8 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
     }
   })
 
-  const aspect = texture.image.width / texture.image.height
+  const image = texture.image as { width: number; height: number }
+  const aspect = image.width / image.height
   const height = 1.5
   const width = height * aspect
 
@@ -159,7 +159,7 @@ export default function FloatingImage({ textureUrl, delay, onClick, onExit, forc
       onClick={(e) => {
         if (opacity.current < 0.5) return
         e.stopPropagation()
-        onClick(textureUrl)
+        onClick()
       }}
     >
       <planeGeometry args={[width, height]} />
