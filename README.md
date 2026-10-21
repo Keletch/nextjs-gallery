@@ -126,7 +126,7 @@ cd nextJs_InfiniteGallery
 
 2. **Instalar dependencias**
 ```bash
-npm install
+pnpm install
 ```
 
 3. **Configurar variables de entorno**
@@ -151,7 +151,7 @@ NEXT_PUBLIC_SITE_URL=https://tu-dominio.com
 
 4. **Ejecutar en desarrollo**
 ```bash
-npm run dev
+pnpm dev
 ```
 
 La aplicación estará disponible en `http://localhost:3000`

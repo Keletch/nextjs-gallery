@@ -1,0 +1,5 @@
+# Scripts de instalación: ninguno de estos es necesario
+# (speed-insights solo imprime un mensaje; unrs-resolver ya trae binarios precompilados).
+allowBuilds:
+  '@vercel/speed-insights': false
+  unrs-resolver: false
