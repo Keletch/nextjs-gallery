@@ -7,28 +7,23 @@ import ModerationPanel from './ModerationPanel'
 import LogsPanel from './LogsPanel'
 import CreateEventPanel from './CreateEventPanel'
 import { useModeration } from './UseModeration'
-import ColorBends from '@/components/ColorBends'
+import GhostFibers from '@/components/GhostFibers'
+import { randomColors, randomFiberParams } from '@/lib/background'
 import Noise from '@/components/Noise'
+import Glass from '@/components/Glass'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 
-function generateColorBendsParams() {
-  return {
-    rotation: Math.random() * 360,
-    speed: 0.2 + Math.random() * 0.5,
-    scale: Math.random() * 2,
-    frequency: 1 + Math.random() * 2,
-    warpStrength: 1,
-    mouseInfluence: 0,
-    parallax: 0,
-    noise: 0,
-  }
+// Fondo: parámetros y colores aleatorios en cada visita
+function generateFiberParams() {
+  const [glowColor, secondaryColor] = randomColors(2)
+  return { ...randomFiberParams({ interactive: false }), glowColor, secondaryColor }
 }
 
 export default function ModeratePage() {
   const [evento, setEvento] = useState<string>('')
   const [folder, setFolder] = useState<Folder>('pending')
-  const [colorBendsParams, setColorBendsParams] = useState<ReturnType<typeof generateColorBendsParams> | null>(null)
+  const [fiberParams, setFiberParams] = useState<ReturnType<typeof generateFiberParams> | null>(null)
   const [mounted, setMounted] = useState(false)
 
   const {
@@ -43,7 +38,7 @@ export default function ModeratePage() {
   } = useModeration(evento, folder)
 
   useEffect(() => {
-    setColorBendsParams(generateColorBendsParams())
+    setFiberParams(generateFiberParams())
     setMounted(true)
   }, [])
 
@@ -111,7 +106,7 @@ export default function ModeratePage() {
     }
   }
 
-  if (!mounted || !colorBendsParams) {
+  if (!mounted || !fiberParams) {
     return <main className="relative min-h-screen w-full overflow-hidden bg-black" />
   }
 
@@ -120,28 +115,28 @@ export default function ModeratePage() {
       <>
         {/* Background effects - absolute con h-screen: reescala en móvil pero NO se estira */}
         <div className="fixed top-0 left-0 w-full h-screen z-0">
-          <ColorBends {...colorBendsParams} transparent />
+          <GhostFibers {...fiberParams} dpr={1.5} />
           <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
         </div>
 
         {/* Content */}
         <div className="relative z-50 w-full max-w-7xl mx-auto pb-8">
-          <h1 className="text-4xl font-bold text-white mb-8 font-mono drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-            Panel de Moderación
+          <h1 className="mb-8 text-4xl font-semibold tracking-tight text-white">
+            Panel de moderación
           </h1>
 
           <CreateEventPanel onCreated={(ruta) => setEvento(ruta)} />
 
-          <div className="mb-6 p-6 bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <Glass radius={28} frost="heavy" className="mb-6 p-6">
             <EventSelector selected={evento} onChange={setEvento} />
-          </div>
+          </Glass>
 
           <FolderSelector selected={folder} onChange={setFolder} />
 
           {status && (
-            <p className="my-4 px-4 py-3 bg-cyan-500/20 backdrop-blur-xl border border-cyan-500/30 rounded-xl text-white font-mono text-sm shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+            <Glass radius={16} frost="regular" className="my-4 px-4 py-3 text-sm text-white/85">
               {status}
-            </p>
+            </Glass>
           )}
 
           {folder !== 'logs' && evento && (

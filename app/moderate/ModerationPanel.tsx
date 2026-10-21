@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import ModeratorImageViewer from './ModeratorImageViewer'
+import Glass, { GlassButton } from '@/components/Glass'
 
 export default function ModerationPanel({
   folder,
@@ -29,9 +30,9 @@ export default function ModerationPanel({
 
   if (images.length === 0) {
     return (
-      <div className="p-8 text-center bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-        <p className="text-white/70 font-mono">No hay imágenes en esta sección.</p>
-      </div>
+      <Glass radius={28} frost="heavy" className="p-8 text-center">
+        <p className="text-white/60">No hay imágenes en esta sección.</p>
+      </Glass>
     )
   }
 
@@ -43,36 +44,42 @@ export default function ModerationPanel({
           if (!entry?.thumb || !entry?.original) return null
 
           return (
-            <div
+            <Glass
               key={filename}
-              className="group relative bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 hover:shadow-[0_20px_60px_rgba(0,255,200,0.4)] hover:border-cyan-500/40"
+              radius={26}
+              frost="regular"
+              refraction={0}
+              className="group transition-transform duration-300 hover:-translate-y-0.5"
               onMouseEnter={() => setHoveredImage(filename)}
               onMouseLeave={() => setHoveredImage(null)}
             >
-              <div className="relative aspect-square cursor-pointer overflow-hidden" onClick={() => setSelectedImage({ url: entry.original, filename })}>
+              <div className="relative m-2 aspect-square cursor-pointer overflow-hidden rounded-[19px]" onClick={() => setSelectedImage({ url: entry.original, filename })}>
                 <img
                   src={`${entry.thumb}?t=${Date.now()}`}
                   alt=""
-                  className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 {hoveredImage === filename && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-center">
-                    <span className="text-white font-mono text-sm font-semibold drop-shadow-lg">Ver detalles</span>
+                  <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 to-transparent p-3">
+                    <span className="text-sm font-medium text-white">Ver detalles</span>
                   </div>
                 )}
               </div>
-              <div className="p-3 flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 px-2 pb-2">
                 {actions.map((action) => (
-                  <button
+                  <GlassButton
                     key={action.label}
                     onClick={() => action.handler(filename)}
-                    className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-gradient-to-r from-cyan-500/20 to-green-500/20 border border-cyan-500/30 cursor-pointer transition-all duration-300 hover:from-cyan-500/30 hover:to-green-500/30 hover:scale-105 shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
+                    size="sm"
+                    radius={13}
+                    refraction={0}
+                    className="w-full"
                   >
                     {action.label}
-                  </button>
+                  </GlassButton>
                 ))}
               </div>
-            </div>
+            </Glass>
           )
         })}
       </div>

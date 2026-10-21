@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabaseClient } from '@/lib/supabase-client'
+import Glass, { GlassButton } from '@/components/Glass'
 
 interface FullscreenViewerProps {
   hash: string
@@ -135,137 +136,101 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose}>
+  const loading = (!imageUrl || !info) && hashValid
 
-      {/* Layout para móvil: scrollable vertical */}
-      <div className="lg:hidden w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col items-center py-4 px-4" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position', transform: 'translate3d(0,0,0)' }} onClick={onClose}>
+  const infoPanel = info && (
+    <Glass
+      radius={28}
+      frost="heavy"
+      className="w-full p-6 text-center animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <p className="mb-1 text-lg font-semibold tracking-tight">
+        <TypewriterText text={info.evento} speed={30} />
+      </p>
+      <p className="mb-2 text-[15px] text-white/90">
+        <TypewriterText text={info.description} delay={500} speed={20} />
+      </p>
+      <p className="mb-5 text-xs text-white/65">
+        <TypewriterText
+          text={`Subido el ${new Date(info.created_at).toLocaleDateString('es-MX', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}`}
+          delay={1000}
+          speed={20}
+        />
+      </p>
 
-        {/* Estado de Carga */}
-        {(!imageUrl || !info) && hashValid && (
-          <div className="flex items-center text-[#aaa] text-xl font-mono my-auto">
-            Cargando datos
-            <div className="flex ml-1">
-              <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-              <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-              <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-            </div>
-          </div>
-        )}
-
-        {/* Imagen */}
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt="fullscreen"
-            className={`w-full max-w-[95vw] object-contain shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'} rounded-2xl`}
-            onLoad={() => setImageLoaded(true)}
-          />
-        )}
-
-        {/* Información */}
-        {info && (
-          <div className="mt-6 mb-4 bg-black/60 backdrop-blur-md p-6 rounded-2xl text-[#eaeaea] max-w-[95vw] w-full text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 animate-in slide-in-from-bottom-5 duration-700 delay-300" onClick={(e) => e.stopPropagation()}>
-            <p className="mb-2 text-lg">
-              <strong className="text-[#00ffa3]">Evento: </strong>
-              <TypewriterText text={info.evento} speed={30} />
-            </p>
-            <p className="mb-2 text-base text-[#ccc]">
-              <strong className="text-[#00ffa3]">Descripción: </strong>
-              <TypewriterText text={info.description} delay={500} speed={20} />
-            </p>
-            <p className="mb-4 text-sm opacity-70 font-mono">
-              <strong>Subido el: </strong>
-              <TypewriterText
-                text={new Date(info.created_at).toLocaleDateString('es-MX', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-                delay={1000}
-                speed={20}
-              />
-            </p>
-
-            <div className="flex flex-wrap gap-3 justify-center mt-4">
-              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1200ms] cursor-pointer" onClick={shareOnX}>Compartir en X</button>
-              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1300ms] cursor-pointer" onClick={shareOnWhatsApp}>Compartir en WhatsApp</button>
-              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1400ms] cursor-pointer" onClick={copyLink}>Copiar enlace</button>
-              <button className="px-4 py-2 bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-purple-500/30 hover:border-purple-500/50 hover:shadow-[0_0_15px_rgba(150,100,255,0.3)] hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1500ms] cursor-pointer" onClick={downloadImage}>Descargar imagen</button>
-            </div>
-          </div>
-        )}
-
-        {!hashValid && !info && (
-          <div className="my-auto bg-black/80 p-4 rounded-xl text-[#f88] text-center">
-            <p>Hash inválido o no se encontró información.</p>
-          </div>
-        )}
+      <div className="flex flex-wrap justify-center gap-2.5">
+        <GlassButton size="sm" onClick={shareOnX}>Compartir en X</GlassButton>
+        <GlassButton size="sm" onClick={shareOnWhatsApp}>Compartir en WhatsApp</GlassButton>
+        <GlassButton size="sm" onClick={copyLink}>Copiar enlace</GlassButton>
+        <GlassButton size="sm" selected onClick={downloadImage}>Descargar imagen</GlassButton>
       </div>
+    </Glass>
+  )
 
-      {/* Layout para desktop: diseño original con absolute positioning */}
-      <div className="hidden lg:flex lg:flex-col lg:items-center lg:justify-center lg:w-full lg:h-full">
+  const loadingState = (
+    <div className="flex items-center text-lg text-white/60">
+      Cargando
+      <div className="ml-1 flex">
+        <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+        <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+        <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+      </div>
+    </div>
+  )
 
-        {/* Estado de Carga */}
-        {(!imageUrl || !info) && hashValid && (
-          <div className="flex items-center text-[#aaa] text-xl font-mono">
-            Cargando datos
-            <div className="flex ml-1">
-              <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-              <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-              <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-            </div>
-          </div>
-        )}
+  const invalidState = (
+    <Glass radius={20} frost="heavy" className="px-5 py-4 text-center text-sm text-white/80">
+      Hash inválido o no se encontró información.
+    </Glass>
+  )
 
-        {/* Imagen */}
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt="fullscreen"
-            className={`max-w-[90vw] max-h-[80vh] object-contain shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'} rounded-2xl`}
-            onLoad={() => setImageLoaded(true)}
-          />
-        )}
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-2xl animate-in fade-in duration-500" onClick={onClose}>
 
-        {/* Información con absolute positioning (diseño original) */}
-        {info && (
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md p-6 rounded-2xl text-[#eaeaea] max-w-[90vw] w-[600px] text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 animate-in slide-in-from-bottom-5 duration-700 delay-300">
-            <p className="mb-2 text-lg">
-              <strong className="text-[#00ffa3]">Evento: </strong>
-              <TypewriterText text={info.evento} speed={30} />
-            </p>
-            <p className="mb-2 text-base text-[#ccc]">
-              <strong className="text-[#00ffa3]">Descripción: </strong>
-              <TypewriterText text={info.description} delay={500} speed={20} />
-            </p>
-            <p className="mb-4 text-sm opacity-70 font-mono">
-              <strong>Subido el: </strong>
-              <TypewriterText
-                text={new Date(info.created_at).toLocaleDateString('es-MX', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-                delay={1000}
-                speed={20}
-              />
-            </p>
+      {/* Cerrar */}
+      <GlassButton
+        aria-label="Cerrar"
+        radius={999}
+        className="absolute right-4 top-4 z-10 h-11 w-11 !p-0"
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
+      >
+        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+        </svg>
+      </GlassButton>
 
-            <div className="flex flex-wrap gap-3 justify-center mt-4">
-              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1200ms] cursor-pointer" onClick={shareOnX}>Compartir en X</button>
-              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1300ms] cursor-pointer" onClick={shareOnWhatsApp}>Compartir en WhatsApp</button>
-              <button className="px-4 py-2 bg-gradient-to-br from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-white/10 hover:border-white/30 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1400ms] cursor-pointer" onClick={copyLink}>Copiar enlace</button>
-              <button className="px-4 py-2 bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 text-white rounded-lg transition-all duration-300 text-sm font-medium backdrop-blur-sm border border-purple-500/30 hover:border-purple-500/50 hover:shadow-[0_0_15px_rgba(150,100,255,0.3)] hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards delay-[1500ms] cursor-pointer" onClick={downloadImage}>Descargar imagen</button>
-            </div>
-          </div>
-        )}
+      {/* Un solo layout para todos los tamaños: la foto tiene un alto máximo para que siempre quepa
+          completa junto con el panel, y el panel va debajo (antes en móvil la foto no tenía límite de
+          alto y en escritorio el panel la tapaba) */}
+      <div
+        className="flex h-full w-full flex-col items-center overflow-y-auto overflow-x-hidden px-4 py-16 scrollbar-hide"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+        onClick={onClose}
+      >
+        <div className="my-auto flex w-full flex-col items-center gap-5">
+          {loading && loadingState}
 
-        {!hashValid && !info && (
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-black/80 p-4 rounded-xl text-[#f88] text-center">
-            <p>Hash inválido o no se encontró información.</p>
-          </div>
-        )}
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt="fullscreen"
+              className={`h-auto max-h-[max(42dvh,calc(100dvh-360px))] w-auto max-w-[min(92vw,1200px)] rounded-[28px] object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'}`}
+              onLoad={() => setImageLoaded(true)}
+            />
+          )}
+
+          {info && <div className="w-full max-w-[600px]">{infoPanel}</div>}
+
+          {!hashValid && !info && invalidState}
+        </div>
       </div>
     </div>
   )

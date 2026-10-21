@@ -1,4 +1,5 @@
 'use client'
+import Glass, { GlassButton } from '@/components/Glass'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 
@@ -17,19 +18,18 @@ export default function FolderSelector({
   ]
 
   return (
-    <div className="flex flex-wrap gap-3 mb-6">
+    <Glass radius={20} frost="clear" className="mb-6 inline-flex flex-wrap gap-1 p-1.5">
       {folders.map(({ label, value }) => (
-        <button
+        <GlassButton
           key={value}
           onClick={() => onChange(value)}
-          className={`px-6 py-3 rounded-xl font-mono text-sm font-semibold cursor-pointer transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)] ${selected === value
-              ? 'bg-gradient-to-r from-cyan-500/30 to-green-500/30 text-white border-2 border-cyan-500/50 scale-105'
-              : 'bg-white/5 backdrop-blur-xl text-white/70 border-2 border-white/10 hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105'
-            }`}
+          radius={14}
+          selected={selected === value}
+          className={selected === value ? '' : '!bg-transparent !shadow-none text-white/60 hover:text-white'}
         >
           {label}
-        </button>
+        </GlassButton>
       ))}
-    </div>
+    </Glass>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import Glass, { GlassButton, GlassInput, GlassSelect } from '@/components/Glass'
 
 type Event = {
   id: string
@@ -8,6 +9,7 @@ type Event = {
   ruta: string
   color?: string
   logo?: string
+  destacado?: boolean
 }
 
 const MAX_LOGO_SIZE_MB = 10
@@ -30,6 +32,8 @@ export default function EventSelector({
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [newColor, setNewColor] = useState<string>('#000000')
   const [status, setStatus] = useState('')
+  const [updatingFeatured, setUpdatingFeatured] = useState(false)
+  const [featuredStatus, setFeaturedStatus] = useState('')
 
   useEffect(() => {
     fetchEvents()
@@ -153,6 +157,31 @@ export default function EventSelector({
     }
   }
 
+  const handleToggleFeatured = async () => {
+    if (!selectedEvent) return
+    setUpdatingFeatured(true)
+    setFeaturedStatus('')
+    try {
+      const res = await fetch('/api/set-featured-event', {
+        method: 'POST',
+        body: JSON.stringify({ eventId: selectedEvent.destacado ? null : selectedEvent.id }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al actualizar evento destacado')
+      await fetchEvents()
+      setFeaturedStatus(
+        selectedEvent.destacado
+          ? 'La galería volverá a mostrar todos los eventos'
+          : 'La galería abrirá este evento por defecto'
+      )
+    } catch (err) {
+      setFeaturedStatus(err instanceof Error ? err.message : 'Error al actualizar evento destacado')
+    } finally {
+      setUpdatingFeatured(false)
+    }
+  }
+
   const handleCancelLogo = () => {
     setShowLogoUpload(false)
     setLogoFile(null)
@@ -169,181 +198,164 @@ export default function EventSelector({
   return (
     <>
       <div className="mb-4">
-        <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Selecciona evento:</label>
-        <select
-          value={selected}
-          onChange={e => onChange(e.target.value)}
-          disabled={loading}
-          className="w-full px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 cursor-pointer"
-        >
-          <option value="" className="bg-gray-900">Selecciona un evento</option>
+        <label className="mb-2 block pl-1 text-sm font-medium text-white/75">Evento</label>
+        <GlassSelect value={selected} onChange={e => onChange(e.target.value)} disabled={loading}>
+          <option value="">Selecciona un evento</option>
           {eventos.map(ev => (
-            <option key={ev.id} value={ev.ruta} className="bg-gray-900">
-              {ev.nombre}
+            <option key={ev.id} value={ev.ruta}>
+              {ev.destacado ? `${ev.nombre} (destacado)` : ev.nombre}
             </option>
           ))}
-        </select>
+        </GlassSelect>
       </div>
 
       {selectedEvent && (
-        <div className="mt-6 p-6 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-          <h4 className="text-lg font-bold text-white mb-4 font-mono">
-            Configuración actual del evento
-          </h4>
+        <Glass radius={26} frost="regular" className="mt-6 p-6">
+          <h4 className="mb-5 text-lg font-semibold tracking-tight">Configuración del evento</h4>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Color Section */}
+          <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Color */}
             <div>
-              <label className="block font-mono text-sm font-semibold text-white/70 mb-2">
-                Color de fondo:
-              </label>
+              <p className="mb-2 text-sm text-white/55">Color de fondo</p>
               <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 rounded-lg border-2 border-white/30 shadow-lg"
+                  className="h-11 w-11 rounded-[12px] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.35)]"
                   style={{ backgroundColor: selectedEvent.color || '#000000' }}
                 />
-                <span className="font-mono text-sm text-white">{selectedEvent.color || '#000000'}</span>
+                <span className="text-sm tabular-nums text-white/80">{selectedEvent.color || '#000000'}</span>
               </div>
             </div>
 
-            {/* Logo Section */}
+            {/* Logo */}
             <div>
-              <label className="block font-mono text-sm font-semibold text-white/70 mb-2">
-                Logotipo:
-              </label>
+              <p className="mb-2 text-sm text-white/55">Logotipo</p>
               {selectedEvent.logo ? (
-                <div className="h-12 flex items-center bg-white/5 rounded-lg px-3 border border-white/10">
+                <div className="flex h-11 items-center rounded-[12px] bg-white/5 px-3 shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.18)]">
                   <img
                     src={`https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery/logos/${selectedEvent.logo}.webp`}
                     alt="Logo del evento"
-                    className="max-w-full max-h-full object-contain"
+                    className="max-h-full max-w-full object-contain"
                   />
                 </div>
               ) : (
-                <p className="text-sm text-white/50 font-mono">Sin logo personalizado</p>
+                <p className="text-sm text-white/45">Sin logo personalizado</p>
               )}
             </div>
           </div>
 
+          {/* Destacado en galería */}
+          <Glass radius={20} frost="regular" refraction={0} className="mb-6 flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-sm font-medium text-white/90">
+                {selectedEvent.destacado ? 'Evento destacado' : 'Evento destacado en la galería'}
+              </p>
+              <p className="mt-1 text-xs text-white/50">
+                {selectedEvent.destacado
+                  ? 'La galería abre este evento al cargar.'
+                  : 'Si ninguno está destacado, la galería muestra todos los eventos.'}
+              </p>
+              {featuredStatus && <p className="mt-2 text-xs text-white/80">{featuredStatus}</p>}
+            </div>
+            <GlassButton
+              onClick={handleToggleFeatured}
+              disabled={updatingFeatured}
+              selected={!selectedEvent.destacado}
+              className="shrink-0"
+            >
+              {updatingFeatured ? 'Guardando...' : selectedEvent.destacado ? 'Quitar destacado' : 'Destacar'}
+            </GlassButton>
+          </Glass>
+
           {/* Action Buttons */}
           {!showColorPicker && !showLogoUpload && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowColorPicker(true)}
-                className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-102"
-              >
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <GlassButton onClick={() => setShowColorPicker(true)}>
                 Cambiar color
-              </button>
-              <button
-                onClick={() => setShowLogoUpload(true)}
-                className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-102"
-              >
+              </GlassButton>
+              <GlassButton onClick={() => setShowLogoUpload(true)}>
                 {selectedEvent.logo ? 'Reemplazar logo' : 'Agregar logo'}
-              </button>
+              </GlassButton>
             </div>
           )}
 
           {/* Color Picker UI */}
           {showColorPicker && (
-            <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
-              <div className="flex items-center gap-3 mb-4">
-                <input
-                  type="color"
-                  value={newColor}
-                  onChange={e => setNewColor(e.target.value)}
-                  className="w-16 h-16 rounded-lg cursor-pointer border-2 border-white/20"
-                  disabled={updatingColor}
-                />
-                <input
+            <div className="mt-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <Glass radius={16} frost="regular" refraction={24} className="shrink-0 p-1.5">
+                  <input
+                    type="color"
+                    value={newColor}
+                    onChange={e => setNewColor(e.target.value)}
+                    className="block h-12 w-12 cursor-pointer rounded-[11px] border-0 bg-transparent p-0"
+                    disabled={updatingColor}
+                  />
+                </Glass>
+                <GlassInput
                   type="text"
                   value={newColor}
                   onChange={e => setNewColor(e.target.value)}
                   placeholder="#000000"
                   disabled={updatingColor}
-                  className="flex-1 px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                  className="flex-1"
                 />
               </div>
 
-              {status && (
-                <p className={`text-sm font-mono mb-4 ${status.includes('correctamente') ? 'text-green-400' : 'text-red-400'}`}>
-                  {status}
-                </p>
-              )}
+              {status && <p className="text-sm text-white/80">{status}</p>}
 
               <div className="flex gap-2">
-                <button
-                  onClick={handleUpdateColor}
-                  disabled={updatingColor}
-                  className="flex-1 px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <GlassButton onClick={handleUpdateColor} disabled={updatingColor} selected className="flex-1">
                   {updatingColor ? 'Actualizando...' : 'Confirmar'}
-                </button>
-                <button
-                  onClick={handleCancelColor}
-                  disabled={updatingColor}
-                  className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                </GlassButton>
+                <GlassButton onClick={handleCancelColor} disabled={updatingColor}>
                   Cancelar
-                </button>
+                </GlassButton>
               </div>
             </div>
           )}
 
           {/* Logo Upload UI */}
           {showLogoUpload && (
-            <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
-              <div
-                {...getRootProps()}
-                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 mb-4 ${isDragActive ? 'border-cyan-500/60 bg-cyan-500/10' : 'border-white/20 bg-white/5 hover:border-cyan-500/40'
-                  }`}
-              >
-                <input {...getInputProps()} disabled={uploadingLogo} />
-                <p className="font-mono text-white/70 text-sm">
-                  {isDragActive
-                    ? 'Suelta el logo aquí...'
-                    : 'Arrastra una imagen o haz clic para seleccionar'}
-                </p>
-                <p className="text-xs text-white/50 mt-2">
-                  Máx {MAX_LOGO_SIZE_MB}MB • JPG, PNG, WebP
-                </p>
-              </div>
+            <div className="mt-4 space-y-4">
+              <Glass radius={20} frost="regular" selected={isDragActive} className="cursor-pointer transition-colors hover:bg-white/[0.08]">
+                {/* Las props del dropzone van aquí: traen su propio ref y no deben pisar el del vidrio */}
+                <div {...getRootProps()} className="m-2 rounded-[14px] border border-dashed border-white/20 p-6 text-center outline-none">
+                  <input {...getInputProps()} disabled={uploadingLogo} />
+                  <p className="text-sm text-white/75">
+                    {isDragActive
+                      ? 'Suelta el logo aquí'
+                      : 'Arrastra una imagen o haz clic para seleccionar'}
+                  </p>
+                  <p className="mt-2 text-xs text-white/45">
+                    Máx {MAX_LOGO_SIZE_MB}MB · JPG, PNG, WebP
+                  </p>
+                </div>
+              </Glass>
 
               {logoPreview && (
-                <div className="mb-4 text-center">
+                <div className="text-center">
                   <img
                     src={logoPreview}
                     alt="Preview"
-                    className="max-w-[200px] max-h-20 mx-auto object-contain border border-white/20 rounded-lg p-2 bg-white/5"
+                    className="mx-auto max-h-20 max-w-[200px] rounded-xl bg-white/5 object-contain p-2 shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.2)]"
                   />
-                  <p className="text-sm text-white/70 font-mono mt-2">{logoFile?.name}</p>
+                  <p className="mt-2 text-sm text-white/60">{logoFile?.name}</p>
                 </div>
               )}
 
-              {status && (
-                <p className={`text-sm font-mono mb-4 ${status.includes('correctamente') ? 'text-green-400' : 'text-red-400'}`}>
-                  {status}
-                </p>
-              )}
+              {status && <p className="text-sm text-white/80">{status}</p>}
 
               <div className="flex gap-2">
-                <button
-                  onClick={handleUploadLogo}
-                  disabled={!logoFile || uploadingLogo}
-                  className="flex-1 px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <GlassButton onClick={handleUploadLogo} disabled={!logoFile || uploadingLogo} selected className="flex-1">
                   {uploadingLogo ? 'Subiendo...' : 'Confirmar'}
-                </button>
-                <button
-                  onClick={handleCancelLogo}
-                  disabled={uploadingLogo}
-                  className="px-4 py-2 rounded-lg font-mono text-sm font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                </GlassButton>
+                <GlassButton onClick={handleCancelLogo} disabled={uploadingLogo}>
                   Cancelar
-                </button>
+                </GlassButton>
               </div>
             </div>
           )}
-        </div>
+        </Glass>
       )}
     </>
   )

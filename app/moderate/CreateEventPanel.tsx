@@ -1,5 +1,6 @@
 'use client'
 import { useState, useCallback } from 'react'
+import Glass, { GlassButton, GlassInput } from '@/components/Glass'
 import { useDropzone } from 'react-dropzone'
 
 const MAX_LOGO_SIZE_MB = 10
@@ -131,60 +132,60 @@ export default function CreateEventPanel({
 
   return (
     <div className="mb-6">
-      <button
-        onClick={() => setShowPopup(true)}
-        className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
-      >
-        + Crear evento
-      </button>
+      <GlassButton onClick={() => setShowPopup(true)} size="lg" radius={16}>
+        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M10 4v12M4 10h12" strokeLinecap="round" />
+        </svg>
+        Crear evento
+      </GlassButton>
 
       {showPopup && (
-        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => !loading && resetForm()}>
-          <div
-            className="w-full max-w-2xl mx-4 bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-[0_24px_80px_rgba(0,0,0,0.7)]"
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 backdrop-blur-md" onClick={() => !loading && resetForm()}>
+          <Glass
+            radius={32}
+            frost="heavy"
+            className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto p-8 scrollbar-hide"
             onClick={(e) => e.stopPropagation()}
           >
-            <h4 className="text-2xl font-bold text-white mb-6 font-mono">Nuevo evento</h4>
+            <h4 className="mb-6 text-2xl font-semibold tracking-tight">Nuevo evento</h4>
 
             {!success ? (
               <>
                 <div className="space-y-4">
                   <div>
-                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Nombre:</label>
-                    <input
+                    <label className="mb-2 block pl-1 text-sm font-medium text-white/75">Nombre</label>
+                    <GlassInput
                       type="text"
                       value={nombre}
                       onChange={e => setNombre(e.target.value)}
                       placeholder="Shift 2025"
-                      className="w-full px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                       disabled={loading}
                     />
                   </div>
 
                   <div>
-                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Ruta:</label>
-                    <input
+                    <label className="mb-2 block pl-1 text-sm font-medium text-white/75">Ruta</label>
+                    <GlassInput
                       type="text"
                       value={ruta}
                       onChange={e => setRuta(e.target.value.replace(/\s/g, ''))}
                       placeholder="shift2025"
-                      className="w-full px-4 py-3 rounded-xl font-mono bg-white/5 backdrop-blur-md border border-white/10 text-white transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                       disabled={loading}
                     />
                   </div>
 
                   <div>
-                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Color de fondo:</label>
-                    <div className="flex items-center gap-3">
+                    <label className="mb-2 block pl-1 text-sm font-medium text-white/75">Color de fondo</label>
+                    <Glass radius={16} frost="regular" refraction={24} className="flex items-center gap-3 p-2 pr-4">
                       <input
                         type="color"
                         value={color}
                         onChange={e => setColor(e.target.value)}
-                        className="w-16 h-16 rounded-lg cursor-pointer border-2 border-white/20"
+                        className="h-11 w-11 cursor-pointer rounded-[10px] border-0 bg-transparent p-0"
                         disabled={loading}
                       />
-                      <span className="font-mono text-white">{color}</span>
-                    </div>
+                      <span className="text-sm tabular-nums text-white/80">{color}</span>
+                    </Glass>
                   </div>
 
                   {/* Honeypot oculto */}
@@ -200,89 +201,74 @@ export default function CreateEventPanel({
                   />
 
                   <div>
-                    <label className="block font-mono text-sm font-semibold text-white/90 mb-2">Logotipo del evento (opcional):</label>
-                    <div
-                      {...getRootProps()}
-                      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 ${isDragActive ? 'border-cyan-500/60 bg-cyan-500/10' : 'border-white/20 bg-white/5 hover:border-cyan-500/40'
-                        }`}
-                    >
-                      <input {...getInputProps()} disabled={loading} />
-                      <p className="font-mono text-white/70">
-                        {isDragActive
-                          ? 'Suelta el logo aquí...'
-                          : 'Arrastra una imagen o haz clic para seleccionar'}
-                      </p>
-                      <p className="text-xs text-white/50 mt-2">
-                        Máx {MAX_LOGO_SIZE_MB}MB • JPG, PNG, WebP
-                      </p>
-                    </div>
+                    <label className="mb-2 block pl-1 text-sm font-medium text-white/75">Logotipo del evento (opcional)</label>
+                    <Glass radius={20} frost="regular" selected={isDragActive} className="cursor-pointer transition-colors hover:bg-white/[0.08]">
+                      {/* Las props del dropzone van aquí: traen su propio ref y no deben pisar el del vidrio */}
+                      <div {...getRootProps()} className="m-2 rounded-[14px] border border-dashed border-white/20 p-6 text-center outline-none">
+                        <input {...getInputProps()} disabled={loading} />
+                        <p className="text-white/75">
+                          {isDragActive
+                            ? 'Suelta el logo aquí'
+                            : 'Arrastra una imagen o haz clic para seleccionar'}
+                        </p>
+                        <p className="mt-2 text-xs text-white/45">
+                          Máx {MAX_LOGO_SIZE_MB}MB · JPG, PNG, WebP
+                        </p>
+                      </div>
+                    </Glass>
 
                     {logoPreview && (
                       <div className="mt-4 text-center">
                         <img
                           src={logoPreview}
                           alt="Logo preview"
-                          className="max-w-[200px] max-h-[100px] mx-auto object-contain border border-white/20 rounded-lg p-2 bg-white/5"
+                          className="mx-auto max-h-[100px] max-w-[200px] rounded-xl bg-white/5 object-contain p-2 shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.2)]"
                         />
-                        <p className="text-sm text-white/70 font-mono mt-2">{logoFile?.name}</p>
+                        <p className="mt-2 text-sm text-white/60">{logoFile?.name}</p>
                       </div>
                     )}
                   </div>
 
                   {confirming && !loading && (
-                    <p className="p-4 bg-cyan-500/20 backdrop-blur-xl border border-cyan-500/30 rounded-xl text-white font-mono text-sm">
+                    <Glass radius={16} frost="regular" className="p-4 text-sm text-white/85">
                       ¿Confirmas crear el evento <strong>{nombre}</strong> con ruta <strong>{ruta}</strong>?
-                    </p>
+                    </Glass>
                   )}
 
                   {loading && (
                     <div className="text-center">
-                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-r-transparent"></div>
+                      <div className="inline-block h-7 w-7 animate-spin rounded-full border-2 border-white/80 border-r-transparent"></div>
                     </div>
                   )}
 
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={handleCreate}
-                      disabled={loading}
-                      className="flex-1 px-6 py-3 rounded-xl font-mono font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
-                    >
+                  <div className="mt-6 flex gap-3">
+                    <GlassButton onClick={handleCreate} disabled={loading} size="lg" selected className="flex-1">
                       {loading ? 'Creando...' : confirming ? 'Confirmar creación' : 'Crear'}
-                    </button>
-                    <button
-                      onClick={resetForm}
-                      disabled={loading}
-                      className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    </GlassButton>
+                    <GlassButton onClick={resetForm} disabled={loading} size="lg">
                       Cancelar
-                    </button>
+                    </GlassButton>
                   </div>
                 </div>
               </>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-2xl mb-6 text-green-400 font-mono font-bold">
-                  ¡Evento creado con éxito!
+              <div className="py-8 text-center">
+                <p className="mb-6 text-2xl font-semibold tracking-tight">
+                  Evento creado con éxito
                 </p>
-                <div className="flex gap-3 justify-center">
-                  <button
-                    onClick={handleReload}
-                    className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-gradient-to-r from-green-500/30 to-cyan-500/30 border-2 border-green-500/50 cursor-pointer transition-all duration-300 hover:scale-105"
-                  >
+                <div className="flex justify-center gap-3">
+                  <GlassButton onClick={handleReload} size="lg" selected>
                     Recargar página
-                  </button>
-                  <button
-                    onClick={resetForm}
-                    className="px-6 py-3 rounded-xl font-mono font-semibold text-white bg-white/5 backdrop-blur-md border border-white/10 cursor-pointer transition-all duration-300 hover:bg-white/10"
-                  >
+                  </GlassButton>
+                  <GlassButton onClick={resetForm} size="lg">
                     Cerrar
-                  </button>
+                  </GlassButton>
                 </div>
               </div>
             )}
 
-            {status && !success && <p className="mt-4 text-center font-mono text-sm text-white/80">{status}</p>}
-          </div>
+            {status && !success && <p className="mt-4 text-center text-sm text-white/75">{status}</p>}
+          </Glass>
         </div>
       )}
     </div>

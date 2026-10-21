@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState, startTransition } from 'react'
+import { useEffect, useMemo, useState, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import useGallerySpeed from './UseGallerySpeed'
 import FullscreenViewer from './FullscreenViewer'
 import Noise from '@/components/Noise'
+import DriftWall, { type DriftWallItem } from '@/components/DriftWall'
+import Glass, { GlassButton, GlassSelect } from '@/components/Glass'
 
 // ⚡ Lazy load de componentes pesados (Three.js)
 const GalleryCanvas = dynamic(() => import('./GalleryCanvas'), {
@@ -27,11 +29,81 @@ interface Evento {
     ruta: string
     color?: string
     logo?: string
+    destacado?: boolean
 }
 
 interface GalleryItem {
     filename: string
     folder: string
+}
+
+type ViewMode = 'wall' | 'flight'
+const VIEW_MODE_KEY = 'gallery:viewMode'
+
+function shuffle<T>(arr: T[]): T[] {
+    const out = [...arr]
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]]
+    }
+    return out
+}
+
+// Composición del muro: se sortea en cada recarga para que la galería no se vea siempre igual
+type WallComposition = {
+    kind: 'columnas' | 'filas' | 'diagonal'
+    orientation: 'vertical' | 'horizontal'
+    /** Giro del muro completo (diagonal) */
+    roll: number
+    /** Inclinación y giro de la cámara */
+    tilt: number
+    turn: number
+    direction: 'up' | 'down'
+}
+
+const KINDS = ['columnas', 'filas', 'diagonal'] as const
+
+function randomComposition(): WallComposition {
+    const sign = () => (Math.random() < 0.5 ? -1 : 1)
+    // Solo en desarrollo: ?muro=columnas|filas|diagonal fuerza el tipo para probarlo
+    const forced = process.env.NODE_ENV !== 'production' && typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('muro')
+        : null
+    const kind = KINDS.find(k => k === forced) ?? KINDS[Math.floor(Math.random() * KINDS.length)]
+    return {
+        kind,
+        orientation: kind === 'filas' || (kind === 'diagonal' && Math.random() < 0.5) ? 'horizontal' : 'vertical',
+        roll: kind === 'diagonal' ? sign() * (15 + Math.random() * 20) : 0,
+        tilt: sign() * (8 + Math.random() * 10),
+        turn: sign() * (6 + Math.random() * 10),
+        direction: Math.random() < 0.5 ? 'up' : 'down',
+    }
+}
+
+// Tamaño del muro según la pantalla: fichas proporcionales al ancho y carriles suficientes para
+// llenarla (en diagonal se cubre la proyección de la pantalla rotada, esquinas incluidas)
+function wallLayout(width: number, height: number, composition: WallComposition) {
+    const sizeColumns = width < 640 ? 3 : width < 1024 ? 4 : width < 1600 ? 5 : width < 2400 ? 6 : 7
+    // Cada columna (ficha + espacio) ocupa su parte del ~82% del ancho; la escala y la perspectiva completan el resto
+    const slot = Math.min(380, Math.max(118, (width * 0.82) / sizeColumns))
+    const gap = Math.round(Math.min(26, Math.max(10, slot * 0.09)))
+    const tileWidth = Math.round(slot - gap)
+    const tileHeight = Math.round(tileWidth * 0.66)
+
+    const vertical = composition.orientation === 'vertical'
+    const laneSize = (vertical ? tileWidth : tileHeight) + gap
+    let lanes: number
+    if (composition.roll === 0) {
+        // Filas: cubren todo el alto (arriba y abajo ya hay desvanecido); con el giro de cámara el lado lejano se encoge
+        lanes = vertical ? sizeColumns : Math.max(2, Math.ceil((height * 0.95) / laneSize))
+    } else {
+        const rad = (composition.roll * Math.PI) / 180
+        const crossLen = vertical ? width : height
+        const mainLen = vertical ? height : width
+        const required = crossLen * Math.abs(Math.cos(rad)) + mainLen * Math.abs(Math.sin(rad))
+        lanes = Math.ceil(required / laneSize) + 2
+    }
+    return { columns: lanes, tileWidth, tileHeight, gap }
 }
 
 export default function GalleryClient() {
@@ -40,10 +112,19 @@ export default function GalleryClient() {
     const [images, setImages] = useState<string[]>([])
     const [urls, setUrls] = useState<Record<string, { thumb: string; full: string; evento: string }>>({})
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
+    // Evento cuyas fotos ya terminaron de cargar (para no mostrar "sin fotos" mientras carga)
+    const [loadedEvent, setLoadedEvent] = useState<string | null>(null)
 
     const [showGridModal, setShowGridModal] = useState(false)
     const [logoUrl, setLogoUrl] = useState<string>('/cdiLogo.png')
     const [isLogoTransitioning, setIsLogoTransitioning] = useState(false)
+    const [eventosLoaded, setEventosLoaded] = useState(false)
+    const [viewMode, setViewMode] = useState<ViewMode>('wall')
+    // Solo afecta al muro, que se renderiza en el cliente después de cargar las fotos
+    const [viewportWidth, setViewportWidth] = useState(() => typeof window === 'undefined' ? 1280 : window.innerWidth)
+    const [viewportHeight, setViewportHeight] = useState(() => typeof window === 'undefined' ? 800 : window.innerHeight)
+    // Una composición por visita (el muro solo se renderiza en el cliente, no afecta la hidratación)
+    const [composition] = useState(randomComposition)
 
     const router = useRouter()
     useGallerySpeed()
@@ -72,16 +153,50 @@ export default function GalleryClient() {
         setSelectedImage(null)
     }
 
+    // Recordar el modo elegido (solo en este navegador)
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(VIEW_MODE_KEY)
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            if (saved === 'wall' || saved === 'flight') setViewMode(saved)
+        } catch { }
+    }, [])
+
+    const changeViewMode = (next: ViewMode) => {
+        setViewMode(next)
+        try { localStorage.setItem(VIEW_MODE_KEY, next) } catch { }
+    }
+
+    useEffect(() => {
+        const update = () => {
+            setViewportWidth(window.innerWidth)
+            setViewportHeight(window.innerHeight)
+        }
+        window.addEventListener('resize', update)
+        return () => window.removeEventListener('resize', update)
+    }, [])
+
     useEffect(() => {
         const fetchEventos = async () => {
-            const res = await fetch('/api/public-events')
-            const data = await res.json()
-            setEventos(data)
+            try {
+                const res = await fetch('/api/public-events')
+                const data: Evento[] = await res.json()
+                setEventos(Array.isArray(data) ? data : [])
+
+                // Abrir el evento destacado por moderación; si no hay, se queda en "Todos los eventos"
+                const destacado = Array.isArray(data) ? data.find(e => e.destacado) : undefined
+                if (destacado) setSelectedEvent(destacado.ruta)
+            } finally {
+                setEventosLoaded(true)
+            }
         }
         fetchEventos()
     }, [])
 
     useEffect(() => {
+        // Esperar a saber si hay evento destacado para no cargar "Todos" y luego cambiar
+        if (!eventosLoaded) return
+
         const fetchGallery = async () => {
             const url = selectedEvent
                 ? `/api/gallery-index?evento=${selectedEvent}`
@@ -118,11 +233,12 @@ export default function GalleryClient() {
             startTransition(() => {
                 setImages(validList.map((item) => item.filename))
                 setUrls(Object.fromEntries(entries))
+                setLoadedEvent(selectedEvent)
             })
         }
 
         fetchGallery()
-    }, [selectedEvent])
+    }, [selectedEvent, eventosLoaded])
 
     // Update logo when event changes with smooth transition
     useEffect(() => {
@@ -157,6 +273,20 @@ export default function GalleryClient() {
         updateLogo()
     }, [selectedEvent, eventos, logoUrl])
 
+    // Fichas del muro: barajadas cada vez que cambia la lista para que no salgan siempre en el mismo orden
+    const wallItems = useMemo<DriftWallItem[]>(() => {
+        const nombres = new Map(eventos.map(e => [e.ruta, e.nombre]))
+        return shuffle(images)
+            .filter(filename => urls[filename]?.thumb)
+            .map(filename => ({
+                id: filename,
+                image: urls[filename].thumb,
+                title: nombres.get(urls[filename].evento) ?? 'Foto de la galería',
+            }))
+    }, [images, urls, eventos])
+
+    const layout = wallLayout(viewportWidth, viewportHeight, composition)
+
     return (
         <>
             <div className="absolute inset-0 z-0" style={{ width: '100%', height: '100%' }}>
@@ -167,48 +297,90 @@ export default function GalleryClient() {
                 <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
             </div>
 
-            <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-[#eaeaea] font-mono z-0" style={{ transform: 'translate3d(0,0,0)' }}>
-                <div className="absolute top-6 left-6 z-10 flex flex-wrap gap-4">
-                    <select
+            <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-white z-0" style={{ transform: 'translate3d(0,0,0)' }}>
+                {/* Barra flotante de vidrio */}
+                <Glass radius={26} frost="clear" refraction={36} className="absolute left-4 right-4 top-4 z-10 flex flex-wrap items-center gap-2 p-2 sm:left-6 sm:right-auto sm:top-6">
+                    <GlassSelect
                         value={selectedEvent}
                         onChange={(e) => setSelectedEvent(e.target.value)}
-                        className="px-4 py-3 bg-white/5 backdrop-blur-xl text-[#eaeaea] border border-white/10 rounded-xl font-mono text-sm font-medium cursor-pointer transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:-translate-y-px shadow-[0_8px_32px_rgba(0,0,0,0.3)] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                        className="min-w-[190px] flex-1 text-sm sm:flex-none"
                     >
-                        <option value="" className="bg-[#1a1a1a] text-[#eaeaea]">Todos los eventos</option>
+                        <option value="">Todos los eventos</option>
                         {eventos.map((ev) => (
-                            <option key={ev.id} value={ev.ruta} className="bg-[#1a1a1a] text-[#eaeaea]">
+                            <option key={ev.id} value={ev.ruta}>
                                 {ev.nombre}
                             </option>
                         ))}
-                    </select>
-                    <button
-                        onClick={() => router.push('/')}
-                        className="px-5 py-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-xl text-white border border-purple-500/30 rounded-xl font-mono text-sm font-bold cursor-pointer transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(150,100,255,0.3)] hover:-translate-y-0.5 hover:scale-105 active:scale-95"
-                    >
-                        Inicio
-                    </button>
-                </div>
+                    </GlassSelect>
+
+                    {/* Control segmentado de vista */}
+                    <div role="radiogroup" aria-label="Vista" className="flex rounded-[14px] bg-black/20 p-1">
+                        {([['wall', 'Muro'], ['flight', 'Vuelo']] as const).map(([mode, label]) => (
+                            <GlassButton
+                                key={mode}
+                                role="radio"
+                                aria-checked={viewMode === mode}
+                                size="sm"
+                                radius={10}
+                                selected={viewMode === mode}
+                                onClick={() => changeViewMode(mode)}
+                                className={viewMode === mode ? '' : '!bg-transparent !shadow-none text-white/65'}
+                            >
+                                {label}
+                            </GlassButton>
+                        ))}
+                    </div>
+
+                    <GlassButton onClick={() => router.push('/')}>Inicio</GlassButton>
+                </Glass>
 
                 <div className="absolute inset-0 z-0">
-                    <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={selectedEvent} />
+                    {viewMode === 'wall' ? (
+                        wallItems.length > 0 ? (
+                            <DriftWall
+                                items={wallItems}
+                                columns={layout.columns}
+                                orientation={composition.orientation}
+                                roll={composition.roll}
+                                tilt={composition.tilt}
+                                turn={composition.turn}
+                                direction={composition.direction}
+                                tileWidth={layout.tileWidth}
+                                tileHeight={layout.tileHeight}
+                                gap={layout.gap}
+                                dim={1}
+                                overlayOpacity={0}
+                                fade={0.15}
+                                onItemClick={(item) => item.id && urls[item.id] && handleSelect(urls[item.id].full)}
+                            />
+                        ) : (
+                            <div className="h-full w-full flex items-center justify-center text-white/50 text-sm">
+                                {loadedEvent === selectedEvent ? 'Aún no hay fotos en este evento' : 'Cargando fotos…'}
+                            </div>
+                        )
+                    ) : (
+                        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={selectedEvent} />
+                    )}
                 </div>
 
                 {selectedImage && (
                     <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
                 )}
 
-                <button
+                <GlassButton
                     onClick={() => setShowGridModal(true)}
-                    className="absolute right-5 bottom-[calc(20px+min(120px,20vw)+12px)] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 cursor-pointer transition-all duration-300 z-10 text-[#eaeaea] shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:-translate-y-1 hover:scale-110 active:scale-100"
+                    radius={999}
+                    aria-label="Ver en cuadrícula"
                     title="Ver en cuadrícula"
+                    className="!absolute right-5 bottom-[calc(20px+min(120px,20vw)+12px)] z-10 h-12 w-12 !p-0"
                 >
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6">
+                        <rect x="4" y="4" width="6.5" height="6.5" rx="1.6" />
+                        <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" />
+                        <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" />
+                        <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" />
                     </svg>
-                </button>
+                </GlassButton>
 
                 <img
                     src={logoUrl}

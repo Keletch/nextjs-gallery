@@ -3,15 +3,28 @@ import { useEffect, useState } from 'react'
 import { supabaseClient } from '../../lib/supabase-client'
 import type { Session } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import Glass, { GlassButton } from '@/components/Glass'
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
+  const [isModerator, setIsModerator] = useState<boolean | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const getSession = async () => {
       const { data } = await supabaseClient.auth.getSession()
       setSession(data.session)
+
+      // Verificar en el servidor que la cuenta esté en la tabla de moderadores
+      if (data.session) {
+        try {
+          const res = await fetch('/api/me', { credentials: 'include' })
+          const { moderator } = await res.json()
+          setIsModerator(Boolean(moderator))
+        } catch {
+          setIsModerator(false)
+        }
+      }
     }
     getSession()
   }, [])
@@ -34,18 +47,38 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!session) {
     return (
-      <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide flex items-center justify-center">
-        <div className="w-full max-w-md p-8">
-          <div className="bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-            <h2 className="text-2xl font-bold text-white mb-6 font-mono text-center">No has iniciado sesión</h2>
-            <button
-              onClick={handleLogin}
-              className="w-full px-6 py-3 rounded-xl font-mono font-semibold text-white bg-gradient-to-r from-cyan-500/30 to-green-500/30 border-2 border-cyan-500/50 cursor-pointer transition-all duration-300 hover:scale-105 shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
-            >
-              Iniciar sesión con Google
-            </button>
-          </div>
-        </div>
+      <main className="relative flex min-h-screen w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-black px-6 scrollbar-hide">
+        <Glass radius={32} frost="heavy" className="w-full max-w-md p-8 text-center">
+          <h2 className="mb-2 text-2xl font-semibold tracking-tight">Panel de moderación</h2>
+          <p className="mb-7 text-sm text-white/55">Inicia sesión con tu cuenta de moderador</p>
+          <GlassButton onClick={handleLogin} size="lg" selected className="w-full">
+            Iniciar sesión con Google
+          </GlassButton>
+        </Glass>
+      </main>
+    )
+  }
+
+  if (isModerator === null) {
+    return (
+      <main className="relative flex min-h-screen w-full items-center justify-center bg-black">
+        <p className="text-white/60">Verificando permisos...</p>
+      </main>
+    )
+  }
+
+  if (!isModerator) {
+    return (
+      <main className="relative flex min-h-screen w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-black px-6 scrollbar-hide">
+        <Glass radius={32} frost="heavy" className="w-full max-w-md p-8 text-center">
+          <h2 className="mb-3 text-2xl font-semibold tracking-tight">Sin permisos</h2>
+          <p className="mb-7 text-sm text-white/60">
+            {session.user.email} no está registrado como moderador.
+          </p>
+          <GlassButton onClick={handleLogout} size="lg" className="w-full">
+            Cerrar sesión
+          </GlassButton>
+        </Glass>
       </main>
     )
   }
@@ -53,27 +86,25 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide">
       {/* Top bar */}
-      <div className="fixed top-4 right-4 z-[10000] flex gap-2">
-        <button
-          onClick={() => router.push('/gallery')}
-          className="px-4 py-2 rounded-lg font-mono font-semibold text-white bg-gray-800/40 backdrop-blur-md border border-white/10 transition-all duration-300 hover:bg-gray-800/60 hover:scale-105 cursor-pointer"
-        >
+      <Glass radius={22} frost="clear" className="!fixed right-4 top-4 z-[10000] flex gap-1.5 p-1.5">
+        <GlassButton size="sm" radius={16} onClick={() => router.push('/gallery')}>
           Ir a galería
-        </button>
-        <button
+        </GlassButton>
+        <GlassButton
+          size="sm"
+          radius={16}
           onClick={async () => {
             if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
               await handleLogout()
             }
           }}
-          className="px-4 py-2 rounded-lg font-mono font-semibold text-white bg-red-500/20 backdrop-blur-md border border-red-500/30 transition-all duration-300 hover:bg-red-500/30 hover:scale-105 cursor-pointer"
         >
-          Logout
-        </button>
-      </div>
+          Cerrar sesión
+        </GlassButton>
+      </Glass>
 
       {/* Main content area with padding for top bar */}
-      <div className="pt-20 px-4 sm:px-6 md:px-8">
+      <div className="px-4 pt-20 sm:px-6 md:px-8">
         {children}
       </div>
     </main>
