@@ -8,6 +8,9 @@ const redis = new Redis({
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
+// Reutilizar una instancia por configuración en lugar de crear una por request.
+const limiters = new Map<string, Ratelimit>();
+
 /**
  * Checks whether the given IP address is allowed to perform an action based on a rate limit.
  * @param ip - The client IP address (or any unique identifier).
@@ -21,10 +24,15 @@ export async function checkRateLimit(
     windowMs: number,
 ): Promise<boolean> {
     const windowSec = Math.ceil(windowMs / 1000);
-    const ratelimit = new Ratelimit({
-        redis,
-        limiter: Ratelimit.fixedWindow(limit, `${windowSec}s`),
-    });
+    const key = `${limit}:${windowSec}`;
+    let ratelimit = limiters.get(key);
+    if (!ratelimit) {
+        ratelimit = new Ratelimit({
+            redis,
+            limiter: Ratelimit.fixedWindow(limit, `${windowSec}s`),
+        });
+        limiters.set(key, ratelimit);
+    }
 
     const { success } = await ratelimit.limit(ip);
     return success;

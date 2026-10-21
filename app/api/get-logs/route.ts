@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { supabase } from '@/lib/supabase-admin'
+import { verifyModerator } from '@/lib/auth-check'
 
 export async function GET(req: NextRequest) {
   try {
+    const { authorized, reason } = await verifyModerator()
+    if (!authorized) {
+      return NextResponse.json({ error: reason }, { status: 401 })
+    }
+
     const { searchParams } = new URL(req.url)
 
     const evento = searchParams.get('evento')

@@ -4,9 +4,6 @@ const nextConfig: NextConfig = {
     experimental: {
         proxyClientMaxBodySize: 50 * 1024 * 1024,
     },
-    // @ts-ignore
-    allowedDevOrigins: ['unsavory-eternal-wired.ngrok-free.dev'],
-
     images: {
         remotePatterns: [
             {
@@ -31,8 +28,13 @@ const nextConfig: NextConfig = {
                         value: 'DENY',
                     },
                     {
-                        key: 'X-XSS-Protection',
-                        value: '1; mode=block',
+                        key: 'Strict-Transport-Security',
+                        value: 'max-age=63072000; includeSubDomains',
+                    },
+                    {
+                        // CSP mínima: bloquea iframes ajenos, <base> y plugins sin tocar scripts/estilos
+                        key: 'Content-Security-Policy',
+                        value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'",
                     },
                     {
                         key: 'Referrer-Policy',

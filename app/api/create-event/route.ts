@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase-admin'
 import { verifyModerator } from '@/lib/auth-check'
+import { isValidEventRoute } from '@/lib/validate'
 
 const BUCKET = 'nextjsGallery'
 const DUMMY_PATH = 'shift2025/thumbnails/dummy.webp'
@@ -18,6 +19,22 @@ export async function POST(req: NextRequest) {
 
         if (!nombre || !ruta) {
             return NextResponse.json({ error: 'Faltan nombre o ruta' }, { status: 400 })
+        }
+
+        if (!isValidEventRoute(ruta)) {
+            return NextResponse.json({ error: 'La ruta solo puede tener letras, números, guiones y guiones bajos' }, { status: 400 })
+        }
+
+        if (typeof nombre !== 'string' || nombre.length > 100) {
+            return NextResponse.json({ error: 'Nombre inválido' }, { status: 400 })
+        }
+
+        if (color && !/^#[0-9a-fA-F]{6}$/.test(color)) {
+            return NextResponse.json({ error: 'Color inválido' }, { status: 400 })
+        }
+
+        if (logo && !/^[a-f0-9]{64}$/.test(logo)) {
+            return NextResponse.json({ error: 'Logo inválido' }, { status: 400 })
         }
 
         // Verificar si ya existe un evento con esa ruta

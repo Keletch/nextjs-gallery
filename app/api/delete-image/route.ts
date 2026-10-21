@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
 import { deleteFile, logAction, supabase } from '@/lib/supabase-admin'
+import { isValidEventRoute, isValidFilename } from '@/lib/validate'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +15,10 @@ export async function POST(req: NextRequest) {
 
     if (!filename || !evento) {
       return NextResponse.json({ error: 'Faltan parámetros: filename o evento' }, { status: 400 })
+    }
+
+    if (!isValidFilename(filename) || !isValidEventRoute(evento)) {
+      return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
     }
 
     const hash = filename.replace(/\.webp$/, '')

@@ -1,22 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+import { createRouteClient } from '@/lib/supabase-route'
 
-export async function GET(req: NextRequest) {
-  const res = NextResponse.next()
-
+export async function GET() {
   try {
-    const supabase = createMiddlewareClient({ req, res })
+    const supabase = await createRouteClient()
 
     const { data, error } = await supabase
       .from('events')
-      .select('id, nombre, ruta, color, logo')
+      .select('*') // '*' para no romper si aún no existe la columna "destacado"
       .order('nombre', { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: 'No se pudieron cargar los eventos' }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(
+      (data ?? []).map((e) => ({
+        id: e.id,
+        nombre: e.nombre,
+        ruta: e.ruta,
+        color: e.color,
+        logo: e.logo,
+        destacado: e.destacado === true,
+      }))
+    )
   } catch (err) {
     return NextResponse.json({ error: 'Error interno al cargar eventos' }, { status: 500 })
   }

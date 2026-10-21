@@ -1,8 +1,7 @@
 import sharp from 'sharp'
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { logAction } from '@/lib/supabase-admin'
+import { logAction, supabase } from '@/lib/supabase-admin'
 import { checkRateLimit } from '@/lib/rate-limit'
 
 const MAX_SIZE_MB = 50
@@ -19,9 +18,11 @@ function hashBuffer(buffer: Buffer) {
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting PRIMERO (antes de procesar nada)
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    // x-forwarded-for puede traer una lista "cliente, proxy1, proxy2": usar solo el cliente
+    const forwarded = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    const ip = forwarded || req.headers.get('x-real-ip') || 'unknown'
 
-    if (!checkRateLimit(ip, 10, 60000)) {
+    if (!(await checkRateLimit(`upload:${ip}`, 10, 60000))) {
       return NextResponse.json({ error: 'Demasiadas solicitudes. Espera un momento.' }, { status: 429 })
     }
 
@@ -30,9 +31,6 @@ export async function POST(req: NextRequest) {
     const file = formData.get('image') as File
     const eventId = formData.get('event') as string
     const description = formData.get('description') as string | null
-
-    const res = NextResponse.next()
-    const supabase = createMiddlewareClient({ req, res })
 
     if (!eventId || typeof eventId !== 'string') {
       return NextResponse.json({ error: 'No se seleccionó evento válido' }, { status: 400 })

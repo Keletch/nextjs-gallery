@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
 import { moveFile, logAction } from '@/lib/supabase-admin'
+import { isValidEventRoute, isValidFilename, isModerationFolder } from '@/lib/validate'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest) {
 
     if (!filename || !from || !evento) {
       return NextResponse.json({ error: 'Faltan parámetros: filename, from o evento' }, { status: 400 })
+    }
+
+    if (!isValidFilename(filename) || !isValidEventRoute(evento) || !isModerationFolder(from)) {
+      return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
     }
 
     const fromPath = `${evento}/${from}`

@@ -41,33 +41,39 @@ export async function deleteFile(filename: string, folder: string): Promise<void
     if (error) throw new Error(`Error al eliminar: ${error.message}`)
 }
 
+// 📄 Listar TODO el contenido de una carpeta (Storage devuelve como máximo `limit` por página)
+const PAGE_SIZE = 1000
+
+async function listAllEntries(folder: string) {
+    const entries: { name: string; metadata: Record<string, unknown> | null }[] = []
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+        const { data, error } = await supabase.storage.from(BUCKET).list(folder, { limit: PAGE_SIZE, offset })
+        if (error) throw error
+        entries.push(...(data ?? []))
+        if (!data || data.length < PAGE_SIZE) return entries
+    }
+}
+
 // 📁 Listar archivos en carpeta exacta
 export async function listFiles(folder: string): Promise<string[]> {
-    const { data, error } = await supabase.storage.from(BUCKET).list(folder, { limit: 1000 })
-
-    if (error) {
+    try {
+        return (await listAllEntries(folder)).map(f => f.name)
+    } catch (error) {
         console.error(`[listFiles] ❌ Error al listar ${folder}:`, error)
         return []
     }
-
-    const files = data?.map(f => f.name) ?? []
-    return files
 }
 
 // 📂 Listar carpetas raíz (eventos)
 export async function listEventFolders(): Promise<string[]> {
-    const { data, error } = await supabase.storage.from(BUCKET).list('', { limit: 100 })
-
-    if (error || !data) {
+    try {
+        return (await listAllEntries(''))
+            .filter((item) => !item.name.includes('.') && !item.metadata)
+            .map((item) => item.name)
+    } catch (error) {
         console.error('[listEventFolders] ❌ Error al listar carpetas raíz:', error)
         return []
     }
-
-    const folders = data
-        .filter((item) => !item.name.includes('.') && !item.metadata)
-        .map((item) => item.name)
-
-    return folders
 }
 
 // 📝 Guardar log de acción

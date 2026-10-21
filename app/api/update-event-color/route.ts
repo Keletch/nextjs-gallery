@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase-admin'
+import { verifyModerator } from '@/lib/auth-check'
+
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
 
 export async function POST(req: NextRequest) {
     try {
+        const { authorized, reason } = await verifyModerator()
+        if (!authorized) {
+            return NextResponse.json({ error: reason }, { status: 401 })
+        }
+
         const { eventId, color } = await req.json()
 
         if (!eventId) {
             return NextResponse.json({ error: 'ID de evento requerido' }, { status: 400 })
+        }
+
+        if (typeof color !== 'string' || !HEX_COLOR.test(color)) {
+            return NextResponse.json({ error: 'Color inválido' }, { status: 400 })
         }
 
         const { error } = await supabase
@@ -16,7 +28,7 @@ export async function POST(req: NextRequest) {
 
         if (error) {
             console.error('[update-event-color] Error:', error)
-            return NextResponse.json({ error: error.message }, { status: 500 })
+            return NextResponse.json({ error: 'Error al actualizar color' }, { status: 500 })
         }
 
 

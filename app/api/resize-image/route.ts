@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
 import { supabase } from '@/lib/supabase-admin'
+import { isValidEventRoute, isValidFilename, isModerationFolder } from '@/lib/validate'
 import sharp from 'sharp'
 
 const BUCKET = 'nextjsGallery'
@@ -20,6 +21,10 @@ export async function POST(req: NextRequest) {
         { error: 'Faltan parámetros requeridos' },
         { status: 400 }
       )
+    }
+
+    if (!isValidFilename(filename) || !isValidEventRoute(evento) || !isModerationFolder(folder)) {
+      return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
     }
 
     const originalPath = `${evento}/${folder}/${filename}`

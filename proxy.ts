@@ -1,15 +1,24 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export default async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  let res = NextResponse.next({ request: req })
 
-  // ❌ Evita tocar req en rutas que usan formData
-  if (req.nextUrl.pathname.startsWith('/api/upload')) {
-    return res
-  }
-
-  const supabase = createMiddlewareClient({ req, res })
+  // Refresca la sesión de Supabase y propaga las cookies actualizadas
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          for (const { name, value } of cookiesToSet) req.cookies.set(name, value)
+          res = NextResponse.next({ request: req })
+          for (const { name, value, options } of cookiesToSet) res.cookies.set(name, value, options)
+        },
+      },
+    }
+  )
   await supabase.auth.getUser()
 
   return res

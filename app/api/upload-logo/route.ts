@@ -1,16 +1,12 @@
 import sharp from 'sharp'
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase-admin'
+import { verifyModerator } from '@/lib/auth-check'
 
 const BUCKET = 'nextjsGallery'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_SIZE_MB = 10
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 function hashBuffer(buffer: Buffer) {
     return crypto.createHash('sha256').update(buffer).digest('hex')
@@ -18,6 +14,11 @@ function hashBuffer(buffer: Buffer) {
 
 export async function POST(req: NextRequest) {
     try {
+        const { authorized, reason } = await verifyModerator()
+        if (!authorized) {
+            return NextResponse.json({ error: reason }, { status: 401 })
+        }
+
         const formData = await req.formData()
         const file = formData.get('logo') as File
 

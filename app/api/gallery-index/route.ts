@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-const BUCKET = 'nextjsGallery'
+import { listFiles as listFolder, listEventFolders } from '@/lib/supabase-admin'
+import { isValidEventRoute } from '@/lib/validate'
 
 function isValidImage(name: string): boolean {
   return (
@@ -18,26 +12,9 @@ function isValidImage(name: string): boolean {
 }
 
 async function listFiles(path: string): Promise<{ filename: string; folder: string }[]> {
-  const { data, error } = await supabase.storage.from(BUCKET).list(path, {
-    limit: 1000,
-  })
-  if (error || !data) return []
-  return data
-    .filter((item) => item.name && isValidImage(item.name))
-    .map((item) => ({
-      filename: item.name,
-      folder: path,
-    }))
-}
-
-async function listEventFolders(): Promise<string[]> {
-  const { data, error } = await supabase.storage.from(BUCKET).list('', {
-    limit: 100,
-  })
-  if (error || !data) return []
-  return data
-    .filter((item) => !item.name.includes('.') && !item.metadata)
-    .map((item) => item.name)
+  return (await listFolder(path))
+    .filter((name) => isValidImage(name))
+    .map((filename) => ({ filename, folder: path }))
 }
 
 export async function GET(req: Request) {
@@ -46,6 +23,10 @@ export async function GET(req: Request) {
 
   try {
     let files: { filename: string; folder: string }[] = []
+
+    if (evento && !isValidEventRoute(evento)) {
+      return NextResponse.json([], { status: 400 })
+    }
 
     if (evento) {
       files = await listFiles(`${evento}/approved`)

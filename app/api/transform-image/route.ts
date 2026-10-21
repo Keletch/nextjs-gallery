@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
 import { supabase } from '@/lib/supabase-admin'
+import { isValidEventRoute, isValidFilename, isModerationFolder } from '@/lib/validate'
 import sharp from 'sharp'
 
 const BUCKET = 'nextjsGallery'
@@ -22,7 +23,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const hash = filename.replace(/\.webp$/, '')
+    if (!isValidFilename(filename) || !isValidEventRoute(evento) || !isModerationFolder(folder)) {
+      return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
+    }
+
+    if ((rotation !== undefined && typeof rotation !== 'number') || ![0, 90, 180, 270, -90, -180, -270].includes(rotation ?? 0)) {
+      return NextResponse.json({ error: 'Rotación inválida' }, { status: 400 })
+    }
+
 
     // Rutas de los archivos
     const originalPath = `${evento}/${folder}/${filename}`

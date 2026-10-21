@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logAction } from '@/lib/supabase-admin'
+import { verifyModerator } from '@/lib/auth-check'
 
 export async function POST(req: NextRequest) {
+  const { authorized, reason } = await verifyModerator()
+  if (!authorized) {
+    return NextResponse.json({ error: reason }, { status: 401 })
+  }
+
   const entry = await req.json()
 
   const required = [

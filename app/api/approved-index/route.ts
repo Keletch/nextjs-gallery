@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { listFiles } from '@/lib/supabase-admin'
+import { isValidEventRoute } from '@/lib/validate'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const evento = searchParams.get('evento')
 
-  if (!evento) {
+  if (!isValidEventRoute(evento)) {
     return NextResponse.json([], { status: 400 })
   }
 
