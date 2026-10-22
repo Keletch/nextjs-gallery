@@ -81,6 +81,11 @@ const columnFactor = (index: number, variance: number) => {
   return 1 + variance * pseudo;
 };
 
+// Ventana tras la primera foto lista en la que las fotos aparecen con animación
+const INTRO_WINDOW_MS = 3000;
+// La entrada se ve una sola vez por carga del sitio (no al cambiar de evento ni de vista)
+let introPlayed = false;
+
 const DriftWall = ({
   items = DEFAULT_ITEMS,
   columns = 5,
@@ -342,15 +347,29 @@ const DriftWall = ({
     markActive(null);
   }, [markActive]);
 
-  // Aparición suave de cada foto al cargar (fade con desenfoque, como la cuadrícula). Se marca con una
-  // clase en el DOM para no volver a renderizar todo el muro por cada imagen.
+  // Entrada suave solo al cargar el sitio: las fotos que cargan en los primeros segundos aparecen con
+  // fade y desenfoque (como la cuadrícula). Después, las que van entrando aparecen sin animación, y al
+  // cambiar de evento o de vista no se repite. Cada foto se marca con una clase en el DOM para no volver
+  // a renderizar todo el muro por cada imagen.
+  const [intro, setIntro] = useState(() => !introPlayed);
+  const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reveal = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.classList.add('is-loaded');
+    // La ventana de entrada empieza con la primera foto lista
+    if (!introPlayed && !introTimerRef.current) {
+      introTimerRef.current = setTimeout(() => {
+        introPlayed = true;
+        setIntro(false);
+      }, INTRO_WINDOW_MS);
+    }
   }, []);
   // Si ya venía de la caché, onLoad puede dispararse antes de enganchar el evento: revelar en el
   // siguiente cuadro para que igual se vea la transición
   const revealIfCached = useCallback((img: HTMLImageElement | null) => {
     if (img?.complete) requestAnimationFrame(() => img.classList.add('is-loaded'));
+  }, []);
+  useEffect(() => () => {
+    if (introTimerRef.current) clearTimeout(introTimerRef.current);
   }, []);
 
   const handlePointerMove = useCallback(
@@ -530,6 +549,7 @@ const DriftWall = ({
     'drift-wall',
     horizontal ? 'drift-wall--horizontal' : '',
     lift !== 0 ? 'drift-wall--lift' : '',
+    intro ? 'drift-wall--intro' : '',
     grayscale ? 'drift-wall--gray' : '',
     reduced ? 'drift-wall--reduced' : '',
     className

@@ -108,10 +108,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Oculta hasta cargar; luego aparece con fade, desenfoque y escala (al final el filtro queda en none) */
-  opacity: 0;
-  transform: scale(1.06);
-  filter: blur(10px);
+  /* Transición de la entrada al cargar el sitio (ver .drift-wall--intro) */
   transition:
     opacity 0.7s ease-out,
     transform 0.9s cubic-bezier(0.22, 1, 0.36, 1),
@@ -149,6 +146,14 @@
   opacity: 1;
   transform: none;
   filter: none;
+}
+
+/* Entrada al cargar el sitio: ocultas hasta cargar, luego fade con desenfoque y escala (al final el filtro
+   queda en none). Pasada la entrada, las fotos que cargan después aparecen sin animación. */
+.drift-wall--intro .drift-wall__tile img:not(.is-loaded) {
+  opacity: 0;
+  transform: scale(1.06);
+  filter: blur(10px);
 }
 
 /* Filtro solo cuando se pide blanco y negro: un filter en cada foto también cuesta */
@@ -196,7 +201,8 @@
     will-change: auto;
   }
 
-  .drift-wall__tile img {
+  .drift-wall__tile img,
+  .drift-wall--intro .drift-wall__tile img:not(.is-loaded) {
     transform: none;
     filter: none;
     transition: opacity 0.3s linear;
