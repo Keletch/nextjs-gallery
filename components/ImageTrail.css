@@ -1,0 +1,25 @@
+.image-trail {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.image-trail__img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--trail-size);
+  aspect-ratio: 1 / var(--trail-aspect);
+  border-radius: var(--trail-radius);
+  overflow: hidden;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.image-trail__inner {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+}
