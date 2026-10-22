@@ -85,8 +85,22 @@
   pointer-events: auto;
   transition:
     transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Resaltado del hover: aro de luz y un leve brillo ya dibujados en una capa propia que solo cambia de
+   opacidad. Animar box-shadow o filter en la foto obligaba a repintar el carril completo en cada cuadro. */
+.drift-wall__inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .drift-wall__tile img {
@@ -94,8 +108,6 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  filter: grayscale(var(--dw-gray)) saturate(0.92);
-  transition: filter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -112,16 +124,28 @@
 .drift-wall__tile.is-active .drift-wall__inner,
 .drift-wall__tile:focus-visible .drift-wall__inner {
   opacity: 1;
-  transform: translateZ(var(--dw-lift));
-  /* Aro de luz fino (como el borde del vidrio) en lugar de solo elevar la foto */
-  box-shadow:
-    0 0 0 1.5px rgba(255, 255, 255, 0.8),
-    0 0 28px rgba(255, 255, 255, 0.16);
 }
 
-.drift-wall__tile.is-active img,
-.drift-wall__tile:focus-visible img {
-  filter: grayscale(0) saturate(1.05) brightness(1.08);
+.drift-wall__tile.is-active .drift-wall__inner::after,
+.drift-wall__tile:focus-visible .drift-wall__inner::after {
+  opacity: 1;
+}
+
+/* Elevar la foto solo si se pide (en la galería lift=0: el hover no la mueve) */
+.drift-wall--lift .drift-wall__tile.is-active .drift-wall__inner,
+.drift-wall--lift .drift-wall__tile:focus-visible .drift-wall__inner {
+  transform: translateZ(var(--dw-lift));
+}
+
+/* Filtro solo cuando se pide blanco y negro: un filter en cada foto también cuesta */
+.drift-wall--gray .drift-wall__tile img {
+  filter: grayscale(1);
+  transition: filter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drift-wall--gray .drift-wall__tile.is-active img,
+.drift-wall--gray .drift-wall__tile:focus-visible img {
+  filter: grayscale(0);
 }
 
 .drift-wall__tile.is-active .drift-wall__overlay,
@@ -129,10 +153,8 @@
   opacity: 0;
 }
 
-.drift-wall__tile:focus-visible .drift-wall__inner {
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.95),
-    0 0 28px rgba(255, 255, 255, 0.16);
+.drift-wall__tile:focus-visible .drift-wall__inner::after {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.95);
 }
 
 /* Carriles horizontales (filas) */

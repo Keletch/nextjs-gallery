@@ -131,8 +131,16 @@ const DriftWall = ({
   const [containerWidth, setContainerWidth] = useState(0);
   // Corrección (px) en el eje transversal para que lo visible quede centrado pese a la perspectiva
   const centerOffsetRef = useRef(0);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // La foto activa se marca con una clase directo en el DOM: con estado de React cada hover volvía a
+  // renderizar todas las fotos del muro
   const activeIdRef = useRef<string | null>(null);
+  const activeElRef = useRef<HTMLElement | null>(null);
+  const markActive = useCallback((el: HTMLElement | null) => {
+    if (activeElRef.current === el) return;
+    activeElRef.current?.classList.remove('is-active');
+    el?.classList.add('is-active');
+    activeElRef.current = el;
+  }, []);
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -323,16 +331,16 @@ const DriftWall = ({
     };
   }, [baseVelocities, columnMeta, pauseOnHover, parallax, reduced, applyPlaneTransform, setTrackOffset, paused]);
 
-  const activate = useCallback((id: string, index: number) => {
+  const activate = useCallback((el: HTMLElement, id: string, index: number) => {
     activeIdRef.current = id;
     hoveredColRef.current = index;
-    setActiveId(id);
-  }, []);
+    markActive(el);
+  }, [markActive]);
   const release = useCallback(() => {
     activeIdRef.current = null;
     hoveredColRef.current = -1;
-    setActiveId(null);
-  }, []);
+    markActive(null);
+  }, [markActive]);
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -351,9 +359,9 @@ const DriftWall = ({
       if (id === activeIdRef.current) return;
       activeIdRef.current = id;
       hoveredColRef.current = Number(tile.dataset.col);
-      setActiveId(id);
+      markActive(tile);
     },
-    [parallax, reduced]
+    [parallax, reduced, markActive]
   );
 
   const handlePointerLeaveWall = useCallback(() => {
@@ -444,13 +452,12 @@ const DriftWall = ({
         '--dw-perspective': `${perspective}px`,
         '--dw-lift': `${lift}px`,
         '--dw-dim': dim,
-        '--dw-gray': grayscale ? 1 : 0,
         '--dw-overlay': overlayColor,
         '--dw-overlay-opacity': overlayOpacity,
         '--dw-edge': `${Math.max(0, (1 - fade) * 100)}%`,
         ...style
       }) as React.CSSProperties,
-    [tileWidth, tileHeight, gap, radius, perspective, lift, dim, grayscale, overlayColor, overlayOpacity, fade, style]
+    [tileWidth, tileHeight, gap, radius, perspective, lift, dim, overlayColor, overlayOpacity, fade, style]
   );
 
   const renderTile = (item: DriftWallItem, id: string, colIndex: number, itemIndex: number) => {
@@ -462,11 +469,11 @@ const DriftWall = ({
       </span>
     );
     const commonProps = {
-      className: `drift-wall__tile${activeId === id ? ' is-active' : ''}`,
+      className: 'drift-wall__tile',
       'data-tile-id': id,
       'data-col': colIndex,
       'data-idx': itemIndex,
-      onFocus: () => activate(id, colIndex),
+      onFocus: (e: React.FocusEvent<HTMLElement>) => activate(e.currentTarget, id, colIndex),
       onBlur: release
     };
     if (item.href) {
@@ -502,6 +509,8 @@ const DriftWall = ({
   const rootClass = [
     'drift-wall',
     horizontal ? 'drift-wall--horizontal' : '',
+    lift !== 0 ? 'drift-wall--lift' : '',
+    grayscale ? 'drift-wall--gray' : '',
     reduced ? 'drift-wall--reduced' : '',
     className
   ]
