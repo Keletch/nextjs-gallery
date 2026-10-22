@@ -68,7 +68,7 @@ export const metadata: Metadata = {
         description: 'Comparte tus experiencias y fotos con nuestra comunidad',
         images: [
             {
-                url: '/SHIFT.png',
+                url: '/og.jpg',
                 width: 1200,
                 height: 630,
                 alt: 'Galería CDI',
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'Galería CDI',
         description: 'Comparte tus experiencias con nuestra comunidad',
-        images: ['/SHIFT.png'],
+        images: ['/og.jpg'],
     },
     alternates: {
         canonical: 'https://galeria.chu.mx',
