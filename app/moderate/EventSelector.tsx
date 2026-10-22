@@ -169,12 +169,8 @@ export default function EventSelector({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al actualizar evento destacado')
+      // Sin mensaje de éxito: el texto de la tarjeta ya cambia según el estado
       await fetchEvents()
-      setFeaturedStatus(
-        selectedEvent.destacado
-          ? 'La galería volverá a mostrar todos los eventos'
-          : 'La galería abrirá este evento por defecto'
-      )
     } catch (err) {
       setFeaturedStatus(err instanceof Error ? err.message : 'Error al actualizar evento destacado')
     } finally {
