@@ -76,6 +76,8 @@ export default function Home() {
                 <div className="flex w-full max-w-3xl flex-col gap-8 py-12 sm:gap-10 sm:py-16">
 
                     <header className="space-y-4 text-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/club-logo.png" alt="Club de Inversionistas" width={240} height={126} className="mx-auto mb-6 h-auto w-28 sm:w-32" />
                         <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-6xl md:text-7xl">
                             Galería CDI
                         </h1>

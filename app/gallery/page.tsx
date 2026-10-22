@@ -52,7 +52,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       return GALLERY_METADATA
     }
 
-    const imageUrl = `https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery/${info.evento}/approved/${hash}.webp`
+    // Recorte 1200×630 en JPG (ver app/api/og): la original es WebP pesado y de otras medidas
+    const imageUrl = `https://galeria.chu.mx/api/og/${hash}`
 
     return {
       title: info.description || 'Imagen',
