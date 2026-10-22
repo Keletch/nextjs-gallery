@@ -80,7 +80,7 @@
   overflow: hidden;
   background: #0b0b12;
   opacity: var(--dw-dim);
-  transform: translateZ(0);
+  /* Sin translateZ(0): convertía cada foto en una capa de composición propia (cientos por cuadro) */
   /* Recibe el puntero: el clic y el hover caen donde se ve la foto (también cuando está elevada) */
   pointer-events: auto;
   transition:

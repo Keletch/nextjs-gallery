@@ -9,6 +9,8 @@ interface GalleryCanvasProps {
     urls: Record<string, { thumb: string; full: string }>
     onSelect: (url: string) => void
     eventId: string
+    /** Detiene el render (con un modal encima) */
+    paused?: boolean
 }
 
 // Máximo de imágenes flotando a la vez
@@ -198,12 +200,12 @@ function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'even
     )
 }
 
-export default function GalleryCanvas({ images, urls, onSelect }: GalleryCanvasProps) {
+export default function GalleryCanvas({ images, urls, onSelect, paused = false }: GalleryCanvasProps) {
     return (
         <Canvas
             camera={{ position: [0, 0, 5], fov: 60 }}
             shadows
-            frameloop="always"
+            frameloop={paused ? 'never' : 'always'}
             gl={{ powerPreference: 'high-performance' }}
         >
             <GalleryScene images={images} urls={urls} onSelect={onSelect} />

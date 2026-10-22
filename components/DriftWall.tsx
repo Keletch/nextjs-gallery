@@ -51,6 +51,8 @@ type DriftWallProps = {
   className?: string;
   style?: React.CSSProperties;
   onItemClick?: (item: DriftWallItem) => void;
+  /** Detiene la animación (las fotos quedan donde están), p. ej. con un modal encima */
+  paused?: boolean;
 };
 
 const DEFAULT_ITEMS: DriftWallItem[] = Array.from({ length: 15 }, (_, i) => {
@@ -105,7 +107,8 @@ const DriftWall = ({
   overlayOpacity = 0.42,
   className = '',
   style,
-  onItemClick
+  onItemClick,
+  paused = false
 }: DriftWallProps) => {
   const horizontal = orientation === 'horizontal';
   const containerRef = useRef<HTMLDivElement>(null);
@@ -274,6 +277,9 @@ const DriftWall = ({
   }, [applyPlaneTransform, horizontal, roll, columnMeta, containerWidth, containerHeight, tileWidth, tileHeight, gap, perspective]);
 
   useEffect(() => {
+    // En pausa no corre el loop: nada cambia detrás del vidrio y el navegador no recalcula sus filtros
+    if (paused) return;
+
     const animate = (ts: number) => {
       if (lastTsRef.current === null) lastTsRef.current = ts;
       const dt = Math.min(0.05, Math.max(0, ts - lastTsRef.current) / 1000);
@@ -315,7 +321,7 @@ const DriftWall = ({
       rafRef.current = null;
       lastTsRef.current = null;
     };
-  }, [baseVelocities, columnMeta, pauseOnHover, parallax, reduced, applyPlaneTransform, setTrackOffset]);
+  }, [baseVelocities, columnMeta, pauseOnHover, parallax, reduced, applyPlaneTransform, setTrackOffset, paused]);
 
   const activate = useCallback((id: string, index: number) => {
     activeIdRef.current = id;

@@ -44,6 +44,11 @@ function supportsSvgBackdrop(): boolean {
 
 const noopSubscribe = () => () => { }
 
+// Área máxima (px²) con refracción SVG. El filtro SVG en backdrop-filter lo calcula el CPU: en un botón
+// es barato, pero en un panel grande (p. ej. un modal de 1700×930) bajaba la galería a ~5 fps.
+// Por encima de esto se usa solo el desenfoque (GPU), que en superficies grandes se ve casi igual.
+const MAX_REFRACTION_AREA = 250_000
+
 // Mapa de desplazamiento: gris 50% en el centro (sin desvío) y gradientes en el borde.
 // R desvía en X y B en Y; ambos apuntan hacia adentro, como el canto de una lente.
 function displacementMap(width: number, height: number, radius: number) {
@@ -121,7 +126,7 @@ export default function Glass({
         () => (size.width > 0 && size.height > 0 ? displacementMap(size.width, size.height, effectiveRadius) : null),
         [size.width, size.height, effectiveRadius]
     )
-    const refracting = svgSupported && map !== null && refraction > 0
+    const refracting = svgSupported && map !== null && refraction > 0 && size.width * size.height <= MAX_REFRACTION_AREA
 
     const backdrop = refracting
         ? `url(#${filterId}) blur(${FROST_BLUR[frost]}px) saturate(1.15) brightness(${BACKDROP_BRIGHTNESS[frost]})`

@@ -4,7 +4,6 @@ import { useDropzone } from 'react-dropzone'
 import { useRouter } from 'next/navigation'
 import GhostFibers from '@/components/GhostFibers'
 import { randomColors, randomFiberParams } from '@/lib/background'
-import Noise from '@/components/Noise'
 import Glass, { GlassButton, GlassSelect, GlassTextarea } from '@/components/Glass'
 
 const MAX_SIZE_MB = 50
@@ -159,8 +158,7 @@ export default function UploadPage() {
     <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide">
       {/* Background effects */}
       <div className="absolute inset-0 z-0" style={{ width: '100%', height: '100%' }}>
-        <GhostFibers {...fiberParams} dpr={1.5} />
-        <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
+        <GhostFibers {...fiberParams} />
       </div>
 
       {/* Back button */}

@@ -6,6 +6,8 @@ import { BRAND_GREEN, randomFiberParams } from '@/lib/background'
 interface BackgroundCanvasProps {
   selectedEvent: string
   color?: string
+  /** Detiene la animación (con un modal encima) */
+  paused?: boolean
 }
 
 // Duración de la transición de color al cambiar de evento
@@ -54,7 +56,7 @@ function generateColorVariations(baseColor: string): Rgb[] {
   ]
 }
 
-export default function BackgroundCanvas({ selectedEvent, color }: BackgroundCanvasProps) {
+export default function BackgroundCanvas({ selectedEvent, color, paused = false }: BackgroundCanvasProps) {
   const [mounted, setMounted] = useState(false)
   const [colors, setColors] = useState<Rgb[]>(() => generateColorVariations(BRAND_GREEN))
   const colorsRef = useRef(colors)
@@ -102,7 +104,7 @@ export default function BackgroundCanvas({ selectedEvent, color }: BackgroundCan
         glowColor={glow}
         lineColor={line}
         secondaryColor={secondary}
-        dpr={1.5}
+        paused={paused}
       />
     </div>
   )

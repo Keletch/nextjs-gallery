@@ -149,7 +149,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
   )
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-400" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 animate-in fade-in duration-400" onClick={onClose}>
       <Glass
         radius={34}
         frost="heavy"

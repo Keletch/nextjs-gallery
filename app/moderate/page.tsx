@@ -9,7 +9,6 @@ import CreateEventPanel from './CreateEventPanel'
 import { useModeration } from './UseModeration'
 import GhostFibers from '@/components/GhostFibers'
 import { randomColors, randomFiberParams } from '@/lib/background'
-import Noise from '@/components/Noise'
 import Glass from '@/components/Glass'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
@@ -115,8 +114,7 @@ export default function ModeratePage() {
       <>
         {/* Background effects - absolute con h-screen: reescala en móvil pero NO se estira */}
         <div className="fixed top-0 left-0 w-full h-screen z-0">
-          <GhostFibers {...fiberParams} dpr={1.5} />
-          <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
+          <GhostFibers {...fiberParams} />
         </div>
 
         {/* Content */}

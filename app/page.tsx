@@ -6,7 +6,6 @@ import { ArrowRight, ArrowUp, Camera, Layers, Sparkles } from 'lucide-react'
 import GhostFibers from '@/components/GhostFibers'
 import Glass from '@/components/Glass'
 import { randomColors, randomFiberParams } from '@/lib/background'
-import Noise from '@/components/Noise'
 
 // Fondo: parámetros y colores aleatorios en cada visita
 function generateFiberParams() {
@@ -45,8 +44,7 @@ export default function Home() {
     return (
         <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide">
             <div className="absolute inset-0 z-0" style={{ width: '100%', height: '100%' }}>
-                <GhostFibers {...fiberParams} dpr={1.5} />
-                <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
+                <GhostFibers {...fiberParams} />
             </div>
 
             <div className={`relative z-50 flex min-h-screen items-center justify-center px-4 transition-all duration-1000 ease-out sm:px-6 ${showContent ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-sm'}`}>

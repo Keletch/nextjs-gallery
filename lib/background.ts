@@ -4,8 +4,19 @@
 // Verde del logo del Club: color de las fibras cuando no hay evento seleccionado
 export const BRAND_GREEN = '#08e888'
 
+// Ajustes de rendimiento: el fondo queda detrás de las fotos y el vidrio, así que con menos
+// puntos (~1/3 de los del componente original) y resolución 1x casi no cambia a la vista
+const PERFORMANCE = {
+    dpr: 1,
+    threads: 48,
+    density: 0.7,
+    particles: 0.3,
+    glow: 0.65,
+}
+
 export function randomFiberParams({ interactive = true }: { interactive?: boolean } = {}) {
     return {
+        ...PERFORMANCE,
         rotation: Math.random() * 360,
         speed: 0.2 + Math.random() * 0.5,
         scale: 0.8 + Math.random() * 0.6,

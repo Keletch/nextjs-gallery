@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import useGallerySpeed from './UseGallerySpeed'
 import FullscreenViewer from './FullscreenViewer'
-import Noise from '@/components/Noise'
 import DriftWall, { type DriftWallItem } from '@/components/DriftWall'
 import Glass, { GlassButton, GlassSelect } from '@/components/Glass'
 
@@ -317,14 +316,18 @@ export default function GalleryClient() {
 
     const layout = wallLayout(viewportWidth, viewportHeight, composition)
 
+    // Con el modal o el visor abiertos se pausa lo de atrás: su vidrio grande recalculaba refracción y
+    // desenfoque en cada cuadro sobre contenido en movimiento (bajaba a ~5 fps)
+    const overlayOpen = showGridModal || selectedImage !== null
+
     return (
         <>
             <div className="absolute inset-0 z-0" style={{ width: '100%', height: '100%' }}>
                 <BackgroundCanvas
                     selectedEvent={selectedEvent}
                     color={eventos.find(e => e.ruta === selectedEvent)?.color}
+                    paused={overlayOpen}
                 />
-                <Noise patternSize={250} patternScaleX={1} patternScaleY={1} patternAlpha={15} />
             </div>
 
             <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-white z-0" style={{ transform: 'translate3d(0,0,0)' }}>
@@ -390,7 +393,7 @@ export default function GalleryClient() {
                             </div>
                         )
                     ) : (
-                        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={selectedEvent} />
+                        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={selectedEvent} paused={overlayOpen} />
                     )}
                 </div>
 
