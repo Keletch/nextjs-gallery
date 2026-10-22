@@ -113,12 +113,15 @@
 .drift-wall__tile:focus-visible .drift-wall__inner {
   opacity: 1;
   transform: translateZ(var(--dw-lift));
-  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.7);
+  /* Aro de luz fino (como el borde del vidrio) en lugar de solo elevar la foto */
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.8),
+    0 0 28px rgba(255, 255, 255, 0.16);
 }
 
 .drift-wall__tile.is-active img,
 .drift-wall__tile:focus-visible img {
-  filter: grayscale(0) saturate(1.05);
+  filter: grayscale(0) saturate(1.05) brightness(1.08);
 }
 
 .drift-wall__tile.is-active .drift-wall__overlay,
@@ -128,8 +131,8 @@
 
 .drift-wall__tile:focus-visible .drift-wall__inner {
   box-shadow:
-    0 24px 60px -18px rgba(0, 0, 0, 0.7),
-    0 0 0 2px rgba(255, 255, 255, 0.9);
+    0 0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 28px rgba(255, 255, 255, 0.16);
 }
 
 /* Carriles horizontales (filas) */

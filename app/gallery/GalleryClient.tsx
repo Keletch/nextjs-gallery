@@ -385,6 +385,8 @@ export default function GalleryClient() {
                                 overlayOpacity={0}
                                 fade={0.15}
                                 parallax={0}
+                                lift={0}
+                                paused={overlayOpen}
                                 onItemClick={(item) => item.id && urls[item.id] && handleSelect(urls[item.id].full)}
                             />
                         ) : (
