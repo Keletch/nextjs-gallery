@@ -112,7 +112,8 @@ function tileSizeFor(width: number, columns: number) {
 // Tamaño del muro según la pantalla: fichas proporcionales al ancho y carriles suficientes para
 // llenarla (en diagonal se cubre la proyección de la pantalla rotada, esquinas incluidas)
 function wallLayout(width: number, height: number, composition: WallComposition) {
-    // Columnas según la densidad sorteada, sin bajar del tamaño mínimo de foto de esta pantalla
+    // Tamaño de foto según la densidad sorteada (expresada como columnas vistas de frente),
+    // sin bajar del tamaño mínimo de foto de esta pantalla
     const range = densityRange(width)
     let maxColumns = range.max
     while (maxColumns > range.min && tileSizeFor(width, maxColumns).tileWidth < range.minTile) maxColumns--
@@ -126,7 +127,14 @@ function wallLayout(width: number, height: number, composition: WallComposition)
     if (composition.roll === 0) {
         // Filas: cubren todo el alto (arriba y abajo ya hay desvanecido). Una fila extra de margen porque
         // con la inclinación y el giro de cámara el lado lejano se encoge y dejaba esquinas sin cubrir
-        lanes = vertical ? sizeColumns : Math.max(2, Math.ceil((height * 0.95) / laneSize) + 1)
+        // En PC las columnas también cubren todo el ancho y la densidad sorteada solo decide el tamaño de
+        // las fotos (antes quedaban márgenes a los lados). En celular y tablet se mantiene como estaba.
+        const fillScreen = width >= 1024
+        lanes = vertical
+            ? fillScreen ? Math.ceil(width / laneSize) + 1 : sizeColumns
+            : fillScreen
+                ? Math.ceil(height / laneSize) + 2
+                : Math.max(2, Math.ceil((height * 0.95) / laneSize) + 1)
     } else {
         const rad = (composition.roll * Math.PI) / 180
         const crossLen = vertical ? width : height
