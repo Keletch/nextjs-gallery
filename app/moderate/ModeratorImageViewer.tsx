@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabaseClient } from '@/lib/supabase-client'
 import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw } from 'lucide-react'
 import Glass, { GlassButton, GlassTextarea } from '@/components/Glass'
@@ -134,7 +135,8 @@ export default function ModeratorImageViewer({
     return transform
   }
 
-  return (
+  // En un portal: dentro del panel (z-50) quedaba debajo de la barra de sesión
+  return createPortal(
     <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/60 backdrop-blur-md" onClick={onClose}>
       <Glass
         radius={32}
@@ -244,6 +246,7 @@ export default function ModeratorImageViewer({
           </div>
         </div>
       </Glass>
-    </div>
+    </div>,
+    document.body
   )
 }

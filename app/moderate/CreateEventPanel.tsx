@@ -1,5 +1,6 @@
 'use client'
 import { useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Glass, { GlassButton, GlassInput } from '@/components/Glass'
 import { useDropzone } from 'react-dropzone'
 
@@ -139,7 +140,8 @@ export default function CreateEventPanel({
         Crear evento
       </GlassButton>
 
-      {showPopup && (
+      {/* En un portal: dentro del panel (z-50) quedaba debajo de la barra de sesión */}
+      {showPopup && createPortal(
         <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 backdrop-blur-md" onClick={() => !loading && resetForm()}>
           <Glass
             radius={32}
@@ -269,7 +271,8 @@ export default function CreateEventPanel({
 
             {status && !success && <p className="mt-4 text-center text-sm text-white/75">{status}</p>}
           </Glass>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
