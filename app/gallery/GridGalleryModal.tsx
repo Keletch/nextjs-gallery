@@ -18,7 +18,7 @@ function GridImage({ src, alt, onClick, priority }: { src: string, alt: string, 
 
   return (
     <div
-      className="relative aspect-square cursor-pointer animate-in fade-in zoom-in-95 duration-400 group"
+      className="relative min-h-0 cursor-pointer animate-in fade-in zoom-in-95 duration-400 group"
       onClick={onClick}
     >
       <div className={`relative w-full h-full rounded-[22px] overflow-hidden bg-white/[0.04] shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.18),0_12px_32px_-12px_rgba(0,0,0,0.6)] transition-transform duration-300 ease-out group-hover:scale-[1.02] group-active:scale-[0.99] ${isLoading ? 'animate-pulse' : ''}`}>
@@ -27,7 +27,7 @@ function GridImage({ src, alt, onClick, priority }: { src: string, alt: string, 
           alt={alt}
           className={`object-cover w-full h-full transition-all duration-500 group-hover:scale-105 ${isLoading ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0'}`}
           fill
-          sizes="(max-width: 768px) 50vw, 33vw"
+          sizes="(max-width: 768px) 50vw, 25vw"
           style={{ objectFit: 'cover' }}
           priority={priority}
           onLoad={() => setIsLoading(false)}
@@ -46,7 +46,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768)
+      setIsMobile(window.innerWidth < 768) // mismo corte que md: en la cuadrícula
     }
     checkMobile()
     window.addEventListener('resize', checkMobile)
@@ -186,18 +186,19 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
           </div>
         </div>
 
-        {/* Grid de imágenes */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 scrollbar-hide sm:p-8">
+        {/* Grid de imágenes: filas fijas que llenan el alto disponible (2 en PC, 3 en celular),
+            así las fotos y la paginación siempre caben sin scroll */}
+        <div className="flex min-h-0 flex-1 flex-col gap-5 p-5 sm:p-7">
           {loading ? (
-            <div className="flex min-h-[300px] items-center justify-center text-white/50">
+            <div className="flex flex-1 items-center justify-center text-white/50">
               <p>Cargando imágenes...</p>
             </div>
           ) : images.length === 0 ? (
-            <div className="flex min-h-[300px] items-center justify-center text-white/50">
+            <div className="flex flex-1 items-center justify-center text-white/50">
               <p>No hay imágenes para mostrar</p>
             </div>
           ) : (
-            <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5">
+            <div className="grid min-h-0 w-full flex-1 grid-cols-2 grid-rows-3 gap-3 sm:gap-4 md:grid-cols-4 md:grid-rows-2">
               {visibleImages.map((img, index) => (
                 <GridImage
                   key={`${img.id}-${selectedEventFilter}`}
@@ -215,7 +216,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
 
           {/* Paginación */}
           {!loading && totalPages > 1 && (
-            <Glass radius={999} frost="regular" className="mx-auto mt-8 flex w-fit items-center gap-2 px-2 py-2">
+            <Glass radius={999} frost="regular" className="mx-auto flex w-fit shrink-0 items-center gap-2 px-2 py-2">
               <GlassButton onClick={goToPrevPage} disabled={page === 0} aria-label="Página anterior" radius={999} className="h-9 w-9 !p-0">
                 {chevron('M12.5 5l-5 5 5 5')}
               </GlassButton>

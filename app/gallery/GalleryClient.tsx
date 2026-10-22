@@ -375,6 +375,21 @@ export default function GalleryClient() {
                         ))}
                     </GlassSelect>
 
+                    {/* Abrir la cuadrícula (antes flotaba abajo a la derecha, junto al logo) */}
+                    <GlassButton
+                        onClick={() => setShowGridModal(true)}
+                        aria-label="Ver en cuadrícula"
+                        title="Ver en cuadrícula"
+                        className="h-[46px] w-[46px] !p-0"
+                    >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6">
+                            <rect x="4" y="4" width="6.5" height="6.5" rx="1.6" />
+                            <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" />
+                            <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" />
+                            <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" />
+                        </svg>
+                    </GlassButton>
+
                     {/* Control segmentado de vista */}
                     <div role="radiogroup" aria-label="Vista" className="flex rounded-[14px] bg-black/20 p-1">
                         {([['wall', 'Muro'], ['flight', 'Vuelo']] as const).map(([mode, label]) => (
@@ -432,20 +447,6 @@ export default function GalleryClient() {
                     <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />
                 )}
 
-                <GlassButton
-                    onClick={() => setShowGridModal(true)}
-                    radius={999}
-                    aria-label="Ver en cuadrícula"
-                    title="Ver en cuadrícula"
-                    className="!absolute right-5 bottom-[calc(20px+min(120px,20vw)+12px)] z-10 h-12 w-12 !p-0"
-                >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6">
-                        <rect x="4" y="4" width="6.5" height="6.5" rx="1.6" />
-                        <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" />
-                        <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" />
-                        <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" />
-                    </svg>
-                </GlassButton>
 
                 <img
                     src={logoUrl}
