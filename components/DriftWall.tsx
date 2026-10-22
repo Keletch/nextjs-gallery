@@ -342,6 +342,17 @@ const DriftWall = ({
     markActive(null);
   }, [markActive]);
 
+  // Aparición suave de cada foto al cargar (fade con desenfoque, como la cuadrícula). Se marca con una
+  // clase en el DOM para no volver a renderizar todo el muro por cada imagen.
+  const reveal = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.classList.add('is-loaded');
+  }, []);
+  // Si ya venía de la caché, onLoad puede dispararse antes de enganchar el evento: revelar en el
+  // siguiente cuadro para que igual se vea la transición
+  const revealIfCached = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete) requestAnimationFrame(() => img.classList.add('is-loaded'));
+  }, []);
+
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -464,7 +475,16 @@ const DriftWall = ({
     const inner = (
       <span className="drift-wall__inner">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={item.image} alt={item.title ?? ''} loading="lazy" decoding="async" draggable={false} />
+        <img
+          src={item.image}
+          alt={item.title ?? ''}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          ref={revealIfCached}
+          onLoad={reveal}
+          onError={reveal}
+        />
         <span className="drift-wall__overlay" aria-hidden="true" />
       </span>
     );
