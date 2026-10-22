@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, startTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import useGallerySpeed from './UseGallerySpeed'
@@ -35,6 +35,9 @@ interface GalleryItem {
     filename: string
     folder: string
 }
+
+// Duración del desvanecido del logo al cambiar de evento (coincide con duration-500)
+const LOGO_FADE_MS = 500
 
 type ViewMode = 'wall' | 'flight'
 const VIEW_MODE_KEY = 'gallery:viewMode'
@@ -147,6 +150,7 @@ export default function GalleryClient() {
     const [showGridModal, setShowGridModal] = useState(false)
     const [logoUrl, setLogoUrl] = useState<string>('/cdiLogo.png')
     const [isLogoTransitioning, setIsLogoTransitioning] = useState(false)
+    const logoUrlRef = useRef('/cdiLogo.png')
     const [eventosLoaded, setEventosLoaded] = useState(false)
     const [viewMode, setViewMode] = useState<ViewMode>('wall')
     // Solo afecta al muro, que se renderiza en el cliente después de cargar las fotos
@@ -269,38 +273,55 @@ export default function GalleryClient() {
         fetchGallery()
     }, [selectedEvent, eventosLoaded])
 
-    // Update logo when event changes with smooth transition
+    // Cambio de logo al cambiar de evento: se desvanece el actual mientras el nuevo se descarga y
+    // decodifica; recién con el nuevo listo se cambia y aparece (antes se cambiaba antes de cargar
+    // y se veía el logo viejo nítido y luego el nuevo de golpe)
     useEffect(() => {
-        const updateLogo = async () => {
-            // Determine new logo URL
-            let newLogoUrl = '/cdiLogo.png'
-
-            if (selectedEvent) {
-                const evento = eventos.find(e => e.ruta === selectedEvent)
-                if (evento?.logo) {
-                    const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
-                    newLogoUrl = `${base}/logos/${evento.logo}.webp`
-                }
+        let newLogoUrl = '/cdiLogo.png'
+        if (selectedEvent) {
+            const evento = eventos.find(e => e.ruta === selectedEvent)
+            if (evento?.logo) {
+                const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
+                newLogoUrl = `${base}/logos/${evento.logo}.webp`
             }
-
-            // Skip transition if URL hasn't changed
-            if (newLogoUrl === logoUrl) return
-
-            // Trigger fade-out
-            setIsLogoTransitioning(true)
-
-            // Wait for fade-out animation (800ms for smoother effect)
-            await new Promise(resolve => setTimeout(resolve, 800))
-
-            // Change logo URL
-            setLogoUrl(newLogoUrl)
-
-            // Trigger fade-in
+        }
+        if (newLogoUrl === logoUrlRef.current) {
+            // Mismo logo (p. ej. se volvió al evento anterior a media transición): asegurar que se vea
             setIsLogoTransitioning(false)
+            return
         }
 
-        updateLogo()
-    }, [selectedEvent, eventos, logoUrl])
+        let cancelled = false
+        setIsLogoTransitioning(true)
+
+        const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms))
+        const preload = new Image()
+        // load siempre se dispara; decode() puede quedar pendiente si la pestaña no se está pintando,
+        // así que se intenta con tope. Si la red falla o tarda, a los 2.5 s se cambia igual.
+        const loaded = new Promise<void>(resolve => {
+            preload.onload = preload.onerror = () => resolve()
+        })
+        preload.src = newLogoUrl
+        const ready = Promise.race([
+            loaded.then(() => Promise.race([preload.decode().catch(() => undefined), wait(300)])),
+            wait(2500),
+        ])
+        Promise.all([ready, wait(LOGO_FADE_MS)]).then(() => {
+            if (cancelled) return
+            logoUrlRef.current = newLogoUrl
+            setLogoUrl(newLogoUrl)
+            // Mostrar un instante después, ya con la imagen nueva puesta (un temporizador y no
+            // requestAnimationFrame: en pestañas en segundo plano rAF puede no ejecutarse y el logo quedaba oculto)
+            setTimeout(() => {
+                if (!cancelled) setIsLogoTransitioning(false)
+            }, 30)
+        })
+
+        // Si se cambia de evento otra vez antes de terminar, esta transición se descarta
+        return () => {
+            cancelled = true
+        }
+    }, [selectedEvent, eventos])
 
     // Fichas del muro: barajadas cada vez que cambia la lista para que no salgan siempre en el mismo orden
     const wallItems = useMemo<DriftWallItem[]>(() => {
@@ -421,7 +442,7 @@ export default function GalleryClient() {
                 <img
                     src={logoUrl}
                     alt="Galería"
-                    className={`absolute bottom-5 right-5 w-[min(120px,20vw)] h-auto opacity-80 pointer-events-none z-10 transition-all duration-700 ease-in-out drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] hover:scale-105 hover:opacity-100 ${isLogoTransitioning ? 'opacity-0 blur-md scale-95' : 'opacity-80 blur-0 scale-100'}`}
+                    className={`absolute bottom-5 right-5 z-10 h-auto w-[min(120px,20vw)] pointer-events-none transition-[opacity,filter,transform] duration-500 ease-in-out drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] ${isLogoTransitioning ? 'opacity-0 blur-md scale-95' : 'opacity-80 blur-0 scale-100'}`}
                 />
             </div>
 
