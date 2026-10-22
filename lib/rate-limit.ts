@@ -29,11 +29,22 @@ export async function checkRateLimit(
     if (!ratelimit) {
         ratelimit = new Ratelimit({
             redis,
-            limiter: Ratelimit.fixedWindow(limit, `${windowSec}s`),
+            // Ventana deslizante: cuenta los últimos N segundos reales (la fija permitía el doble
+            // de solicitudes si caían justo en el cambio de ventana)
+            limiter: Ratelimit.slidingWindow(limit, `${windowSec}s`),
+            // Si Redis tarda, dejar pasar en vez de bloquear la subida
+            timeout: 1500,
         });
         limiters.set(key, ratelimit);
     }
 
-    const { success } = await ratelimit.limit(ip);
-    return success;
+    // Si Redis no está disponible, dejar pasar: el límite es una protección contra abuso y no debe
+    // tumbar las subidas (si Redis falla, sin esto todas las subidas respondían 500)
+    try {
+        const { success } = await ratelimit.limit(ip);
+        return success;
+    } catch (err) {
+        console.error('[rate-limit] Redis no disponible, se permite la solicitud:', err instanceof Error ? err.message : err);
+        return true;
+    }
 }

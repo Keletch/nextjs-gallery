@@ -10,6 +10,9 @@ const MIN_RESOLUTION = 8000000 // 8 megapíxeles
 const BUCKET = 'nextjsGallery'
 const RESIZE_TARGET = 1980
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+// Límites de subida por IP
+const UPLOADS_PER_MINUTE = 40
+const UPLOADS_PER_DAY = 300
 
 function hashBuffer(buffer: Buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex')
@@ -22,8 +25,13 @@ export async function POST(req: NextRequest) {
     const forwarded = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     const ip = forwarded || req.headers.get('x-real-ip') || 'unknown'
 
-    if (!(await checkRateLimit(`upload:${ip}`, 10, 60000))) {
-      return NextResponse.json({ error: 'Demasiadas solicitudes. Espera un momento.' }, { status: 429 })
+    // En un evento muchos asistentes comparten el WiFi y salen con la misma IP, así que el límite
+    // por minuto es holgado y un tope diario frena abusos sostenidos
+    if (!(await checkRateLimit(`upload:${ip}`, UPLOADS_PER_MINUTE, 60_000))) {
+      return NextResponse.json({ error: 'Demasiadas subidas seguidas. Espera un minuto e intenta de nuevo.' }, { status: 429 })
+    }
+    if (!(await checkRateLimit(`upload-day:${ip}`, UPLOADS_PER_DAY, 24 * 60 * 60_000))) {
+      return NextResponse.json({ error: 'Se alcanzó el límite de subidas de hoy desde esta red. Intenta mañana.' }, { status: 429 })
     }
 
     // Leer el cuerpo antes de tocar req
