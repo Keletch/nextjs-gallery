@@ -47,7 +47,9 @@ const noopSubscribe = () => () => { }
 // Área máxima (px²) con refracción SVG. El filtro SVG en backdrop-filter lo calcula el CPU: en un botón
 // es barato, pero en un panel grande (p. ej. un modal de 1700×930) bajaba la galería a ~5 fps.
 // Por encima de esto se usa solo el desenfoque (GPU), que en superficies grandes se ve casi igual.
-const MAX_REFRACTION_AREA = 250_000
+// El costo se suma por cada panel: en el inicio ocho tarjetas de ~600×130 sobre el fondo animado también
+// lo ponían lento, así que solo refractan los elementos chicos (botones, etiquetas, campos, la barra).
+const MAX_REFRACTION_AREA = 45_000
 
 // Mapa de desplazamiento: gris 50% en el centro (sin desvío) y gradientes en el borde.
 // R desvía en X y B en Y; ambos apuntan hacia adentro, como el canto de una lente.
