@@ -54,23 +54,24 @@ function shuffle<T>(arr: T[]): T[] {
 
 // Composición del muro: se sortea en cada recarga para que la galería no se vea siempre igual
 type WallComposition = {
-    kind: 'columnas' | 'filas' | 'diagonal'
+    kind: 'columnas' | 'filas'
     orientation: 'vertical' | 'horizontal'
-    /** Giro del muro completo (diagonal) */
-    roll: number
     /** Inclinación y giro de la cámara */
     tilt: number
     turn: number
     direction: 'up' | 'down'
     /** Densidad 0–1: 0 = pocas columnas grandes, 1 = muchas pequeñas (dentro del rango de la pantalla) */
     density: number
+    /** Sorteo 0–1 de tamaño y velocidad de cada carril (fijo por visita para que no cambie al redimensionar) */
+    laneDraws: { size: number; speed: number }[]
 }
 
-const KINDS = ['columnas', 'filas', 'diagonal'] as const
+const KINDS = ['columnas', 'filas'] as const
+const MAX_LANES = 40
 
 function randomComposition(): WallComposition {
     const sign = () => (Math.random() < 0.5 ? -1 : 1)
-    // Solo en desarrollo: ?muro=columnas|filas|diagonal fuerza el tipo para probarlo
+    // Solo en desarrollo: ?muro=columnas|filas fuerza el tipo para probarlo
     const forced = process.env.NODE_ENV !== 'production' && typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('muro')
         : null
@@ -83,12 +84,12 @@ function randomComposition(): WallComposition {
     const density = forcedDensity === 'min' ? 0 : forcedDensity === 'max' ? 1 : (Math.random() + Math.random()) / 2
     return {
         kind,
-        orientation: kind === 'filas' || (kind === 'diagonal' && Math.random() < 0.5) ? 'horizontal' : 'vertical',
-        roll: kind === 'diagonal' ? sign() * (15 + Math.random() * 20) : 0,
+        orientation: kind === 'filas' ? 'horizontal' : 'vertical',
         tilt: sign() * (8 + Math.random() * 10),
         turn: sign() * (6 + Math.random() * 10),
         direction: Math.random() < 0.5 ? 'up' : 'down',
         density,
+        laneDraws: Array.from({ length: MAX_LANES }, () => ({ size: Math.random(), speed: Math.random() })),
     }
 }
 
@@ -102,6 +103,11 @@ function densityRange(width: number) {
 }
 
 const MAX_SLOT = 440 // foto de ~400 px como máximo
+// Cada carril mide entre 0.6× y 1.5× la foto base y va entre 0.35× y 1.45× de la velocidad base
+// (1.45× era el carril más rápido antes, así que el tope no sube)
+const LANE_SCALE = { min: 0.6, max: 1.5 }
+const LANE_SPEED = { min: 0.35, max: 1.45 }
+const MAX_TILE = 520
 
 function tileSizeFor(width: number, columns: number) {
     // Cada columna (ficha + espacio) ocupa su parte del ~82% del ancho; la escala y la perspectiva completan el resto
@@ -110,8 +116,8 @@ function tileSizeFor(width: number, columns: number) {
     return { tileWidth: Math.round(slot - gap), gap }
 }
 
-// Tamaño del muro según la pantalla: fichas proporcionales al ancho y carriles suficientes para
-// llenarla (en diagonal se cubre la proyección de la pantalla rotada, esquinas incluidas)
+// Tamaño del muro según la pantalla: foto base según la densidad sorteada y carriles de tamaños
+// irregulares hasta cubrir la pantalla
 function wallLayout(width: number, height: number, composition: WallComposition) {
     // Tamaño de foto según la densidad sorteada (expresada como columnas vistas de frente),
     // sin bajar del tamaño mínimo de foto de esta pantalla
@@ -123,28 +129,28 @@ function wallLayout(width: number, height: number, composition: WallComposition)
     const tileHeight = Math.round(tileWidth * 0.66)
 
     const vertical = composition.orientation === 'vertical'
-    const laneSize = (vertical ? tileWidth : tileHeight) + gap
-    let lanes: number
-    if (composition.roll === 0) {
-        // Filas: cubren todo el alto (arriba y abajo ya hay desvanecido). Una fila extra de margen porque
-        // con la inclinación y el giro de cámara el lado lejano se encoge y dejaba esquinas sin cubrir
-        // En PC las columnas también cubren todo el ancho y la densidad sorteada solo decide el tamaño de
-        // las fotos (antes quedaban márgenes a los lados). En celular y tablet se mantiene como estaba.
-        const fillScreen = width >= 1024
-        lanes = vertical
-            ? fillScreen ? Math.ceil(width / laneSize) + 1 : sizeColumns
-            : fillScreen
-                ? Math.ceil(height / laneSize) + 2
-                : Math.max(2, Math.ceil((height * 0.95) / laneSize) + 1)
-    } else {
-        const rad = (composition.roll * Math.PI) / 180
-        const crossLen = vertical ? width : height
-        const mainLen = vertical ? height : width
-        const required = crossLen * Math.abs(Math.cos(rad)) + mainLen * Math.abs(Math.sin(rad))
-        // +3 de margen: con la perspectiva el lado lejano se encoge y las esquinas quedaban al límite
-        lanes = Math.ceil(required / laneSize) + 3
+    const baseLane = vertical ? tileWidth : tileHeight
+    // Ningún carril baja del mínimo de la pantalla ni pasa del máximo
+    const minScale = Math.max(LANE_SCALE.min, range.minTile / tileWidth)
+    const maxScale = Math.max(minScale, Math.min(LANE_SCALE.max, MAX_TILE / tileWidth))
+
+    // Filas: cubren todo el alto (arriba y abajo ya hay desvanecido), con margen porque con la inclinación
+    // y el giro de cámara el lado lejano se encoge. En PC las columnas también cubren todo el ancho; en
+    // celular y tablet se mantiene el ~82% de antes (la escala y la perspectiva completan el resto).
+    const fillScreen = width >= 1024
+    const target = vertical
+        ? fillScreen ? width + baseLane + gap : width * 0.82
+        : fillScreen ? height + 2 * (baseLane + gap) : height * 0.95 + baseLane + gap
+
+    const lanes: { scale: number; speed: number }[] = []
+    let covered = 0
+    while ((covered < target || lanes.length < 2) && lanes.length < MAX_LANES) {
+        const draw = composition.laneDraws[lanes.length]
+        const scale = minScale + draw.size * (maxScale - minScale)
+        lanes.push({ scale, speed: LANE_SPEED.min + draw.speed * (LANE_SPEED.max - LANE_SPEED.min) })
+        covered += baseLane * scale + gap
     }
-    return { columns: lanes, tileWidth, tileHeight, gap }
+    return { lanes, tileWidth, tileHeight, gap }
 }
 
 export default function GalleryClient() {
@@ -449,9 +455,9 @@ export default function GalleryClient() {
                         wallItems.length > 0 ? (
                             <DriftWall
                                 items={wallItems}
-                                columns={layout.columns}
+                                columns={layout.lanes.length}
+                                lanes={layout.lanes}
                                 orientation={composition.orientation}
-                                roll={composition.roll}
                                 tilt={composition.tilt}
                                 turn={composition.turn}
                                 direction={composition.direction}

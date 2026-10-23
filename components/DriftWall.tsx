@@ -40,6 +40,8 @@ type DriftWallProps = {
   speed?: number;
   direction?: 'up' | 'down';
   variance?: number;
+  /** Tamaño (multiplica la ficha) y velocidad (multiplica speed) de cada carril; reemplaza a variance */
+  lanes?: { scale: number; speed: number }[];
   parallax?: number;
   pauseOnHover?: boolean;
   lift?: number;
@@ -102,6 +104,7 @@ const DriftWall = ({
   speed = 42,
   direction = 'up',
   variance = 0.45,
+  lanes,
   parallax = 0.6,
   pauseOnHover = false,
   lift = 64,
@@ -160,6 +163,16 @@ const DriftWall = ({
   // Largo a cubrir en el sentido del desplazamiento: con el muro girado, la pantalla rotada
   // proyecta ancho y alto sobre el carril
   const unit = (horizontal ? tileWidth : tileHeight) + gap;
+  // Largo de una ficha (más espacio) en cada carril: con lanes cada carril tiene su tamaño
+  const laneScale = useCallback((c: number) => lanes?.[c]?.scale ?? 1, [lanes]);
+  const laneUnit = useCallback(
+    (c: number) => (horizontal ? tileWidth : tileHeight) * laneScale(c) + gap,
+    [horizontal, tileWidth, tileHeight, gap, laneScale]
+  );
+  const minUnit = useMemo(
+    () => Math.min(unit, ...Array.from({ length: columns }, (_, c) => laneUnit(c))),
+    [unit, columns, laneUnit]
+  );
   const planeMain = useMemo(() => {
     const width = containerWidth || 1000;
     const mainLen = horizontal ? width : containerHeight;
@@ -173,7 +186,7 @@ const DriftWall = ({
     if (n === 0) return Array.from({ length: columns }, () => [] as DriftWallItem[]);
 
     // Fichas que caben a lo largo de un carril
-    const visiblePerLane = Math.ceil(planeMain / unit);
+    const visiblePerLane = Math.ceil(planeMain / minUnit);
 
     // Suficientes fotos: cada una aparece en un solo carril y no se repite a la vista
     if (n >= columns * visiblePerLane) {
@@ -189,17 +202,18 @@ const DriftWall = ({
     return Array.from({ length: columns }, (_, c) =>
       Array.from({ length: perLane }, (_, k) => items[(c * step + k) % n])
     );
-  }, [items, columns, planeMain, unit]);
+  }, [items, columns, planeMain, minUnit]);
 
   const columnMeta = useMemo(() => {
-    return columnItems.map(col => {
-      const copyHeight = Math.max(unit, col.length * unit);
+    return columnItems.map((col, c) => {
+      const u = laneUnit(c);
+      const copyHeight = Math.max(u, col.length * u);
       // La vista empieza al inicio del plano; el track se desplaza hasta una copia completa,
       // así que debe cubrir esa copia más todo el largo del plano.
       const copies = Math.max(2, Math.ceil(planeMain / copyHeight) + 1);
       return { copyHeight, copies };
     });
-  }, [columnItems, unit, planeMain]);
+  }, [columnItems, laneUnit, planeMain]);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -218,9 +232,10 @@ const DriftWall = ({
     const dirSign = direction === 'up' ? 1 : -1;
     return columnItems.map((_, c) => {
       const altSign = c % 2 === 0 ? 1 : -1;
-      return speed * columnFactor(c, variance) * dirSign * altSign;
+      const factor = lanes ? lanes[c]?.speed ?? 1 : columnFactor(c, variance);
+      return speed * factor * dirSign * altSign;
     });
-  }, [columnItems, speed, direction, variance]);
+  }, [columnItems, speed, direction, variance, lanes]);
 
   useEffect(() => {
     offsetsRef.current = columnMeta.map((meta, c) => meta.copyHeight * ((c * 0.37) % 1));
@@ -582,7 +597,14 @@ const DriftWall = ({
           const meta = columnMeta[c];
           const copies = Array.from({ length: meta.copies });
           return (
-            <div className="drift-wall__col" key={`col-${c}`}>
+            <div
+              className="drift-wall__col"
+              key={`col-${c}`}
+              style={lanes ? ({
+                '--dw-tile-w': `${tileWidth * laneScale(c)}px`,
+                '--dw-tile-h': `${tileHeight * laneScale(c)}px`
+              } as React.CSSProperties) : undefined}
+            >
               <div
                 className="drift-wall__track"
                 ref={el => {
