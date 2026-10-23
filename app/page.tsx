@@ -18,11 +18,29 @@ function generateFiberParams() {
     return { ...randomFiberParams({ interactive: true }), glowColor, secondaryColor }
 }
 
+const COUNT_MS = 1600
+
 export default function Home() {
     const [fiberParams, setFiberParams] = useState<ReturnType<typeof generateFiberParams> | null>(null)
     const [trail, setTrail] = useState<string[]>([])
     const [stats, setStats] = useState<{ fotos: number; eventos: number } | null>(null)
     const [showContent, setShowContent] = useState(false)
+    // Lo que muestra el contador: arranca en 0 y sube hasta stats cuando llegan
+    const [shown, setShown] = useState({ fotos: 0, eventos: 0 })
+
+    useEffect(() => {
+        if (!stats) return
+        let frame = 0
+        const start = performance.now()
+        const tick = (now: number) => {
+            const t = Math.min(1, (now - start) / COUNT_MS)
+            const eased = 1 - Math.pow(1 - t, 3)
+            setShown({ fotos: Math.round(stats.fotos * eased), eventos: Math.round(stats.eventos * eased) })
+            if (t < 1) frame = requestAnimationFrame(tick)
+        }
+        frame = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(frame)
+    }, [stats])
 
     useEffect(() => {
         // Aleatorio solo en el cliente: generarlo en el render no coincidiría con el HTML del servidor
@@ -82,10 +100,10 @@ export default function Home() {
                             Galería CDI
                         </h1>
                         <p className="text-lg text-white/75 sm:text-xl">
-                            Las fotos de los eventos del Club de Inversionistas
+                            Galería oficial del Club de Inversionistas
                         </p>
-                        <p className={`text-sm text-white/55 transition-opacity duration-700 ${stats ? 'opacity-100' : 'opacity-0'}`}>
-                            {stats ? `${stats.fotos.toLocaleString('es-MX')} fotos de ${stats.eventos} eventos` : ' '}
+                        <p className="text-sm text-white/55 tabular-nums">
+                            {`${shown.fotos.toLocaleString('es-MX')} fotos de ${shown.eventos} eventos`}
                         </p>
                     </header>
 
@@ -122,11 +140,11 @@ export default function Home() {
                             </div>
                         </Glass>
                     </div>
-
-                    <p className="text-center text-xs text-white/45 sm:text-sm">
-                        Hecho con cariño · @somoscdi · @hyenukchu
-                    </p>
                 </div>
+
+                <p className="absolute inset-x-0 bottom-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-xs text-white/45 sm:text-sm">
+                    Hecho con cariño · @somoscdi · @hyenukchu
+                </p>
             </div>
         </main>
     )

@@ -103,10 +103,15 @@ function densityRange(width: number) {
 }
 
 const MAX_SLOT = 440 // foto de ~400 px como máximo
-// Cada carril mide entre 0.6× y 1.5× la foto base y va entre 0.35× y 1.45× de la velocidad base
-// (1.45× era el carril más rápido antes, así que el tope no sube)
-const LANE_SCALE = { min: 0.6, max: 1.5 }
-const LANE_SPEED = { min: 0.35, max: 1.45 }
+// Tres tamaños de carril (lejano, medio, cercano) en vez de un tamaño continuo al azar: se lee como
+// capas de profundidad. La velocidad va con el tamaño (paralaje: lo cercano pasa más rápido), con un
+// poco de variación para que dos carriles iguales no vayan sincronizados. Tope 1.45×, el de antes.
+const LANE_TIERS = [
+    { scale: 0.8, speed: 0.55 },
+    { scale: 1, speed: 0.9 },
+    { scale: 1.25, speed: 1.3 },
+]
+const LANE_SPEED_JITTER = 0.15
 const MAX_TILE = 520
 
 function tileSizeFor(width: number, columns: number) {
@@ -131,8 +136,8 @@ function wallLayout(width: number, height: number, composition: WallComposition)
     const vertical = composition.orientation === 'vertical'
     const baseLane = vertical ? tileWidth : tileHeight
     // Ningún carril baja del mínimo de la pantalla ni pasa del máximo
-    const minScale = Math.max(LANE_SCALE.min, range.minTile / tileWidth)
-    const maxScale = Math.max(minScale, Math.min(LANE_SCALE.max, MAX_TILE / tileWidth))
+    const minScale = range.minTile / tileWidth
+    const maxScale = Math.max(minScale, MAX_TILE / tileWidth)
 
     // Filas: cubren todo el alto (arriba y abajo ya hay desvanecido), con margen porque con la inclinación
     // y el giro de cámara el lado lejano se encoge. En PC las columnas también cubren todo el ancho; en
@@ -143,11 +148,19 @@ function wallLayout(width: number, height: number, composition: WallComposition)
         : fillScreen ? height + 2 * (baseLane + gap) : height * 0.95 + baseLane + gap
 
     const lanes: { scale: number; speed: number }[] = []
+    let prevTier = -1
     let covered = 0
     while ((covered < target || lanes.length < 2) && lanes.length < MAX_LANES) {
         const draw = composition.laneDraws[lanes.length]
-        const scale = minScale + draw.size * (maxScale - minScale)
-        lanes.push({ scale, speed: LANE_SPEED.min + draw.speed * (LANE_SPEED.max - LANE_SPEED.min) })
+        // Dos carriles vecinos nunca del mismo tamaño (así se notan las capas): se sortea entre los otros dos
+        const options = [0, 1, 2].filter(t => t !== prevTier)
+        const tier = options[Math.min(options.length - 1, Math.floor(draw.size * options.length))]
+        prevTier = tier
+        // Si la capa lejana quedaría bajo el mínimo de la pantalla, subir las tres juntas en vez de
+        // aplastar la lejana contra la media
+        const lift = Math.max(0, minScale - LANE_TIERS[0].scale)
+        const scale = Math.min(maxScale, LANE_TIERS[tier].scale + lift)
+        lanes.push({ scale, speed: LANE_TIERS[tier].speed + (draw.speed - 0.5) * 2 * LANE_SPEED_JITTER })
         covered += baseLane * scale + gap
     }
     return { lanes, tileWidth, tileHeight, gap }
@@ -404,11 +417,11 @@ export default function GalleryClient() {
 
             <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-white z-0" style={{ transform: 'translate3d(0,0,0)' }}>
                 {/* Barra flotante de vidrio */}
-                <Glass radius={26} frost="clear" refraction={36} className="absolute left-4 right-4 top-4 z-10 flex flex-wrap items-center gap-2 p-2 sm:left-6 sm:right-auto sm:top-6">
+                <Glass radius={26} frost="clear" refraction={36} className="absolute left-3 right-3 top-3 z-10 flex flex-wrap items-center gap-1.5 p-1.5 sm:left-6 sm:right-auto sm:top-6 sm:gap-2 sm:p-2">
                     <GlassSelect
                         value={selectedEvent}
                         onChange={(e) => setSelectedEvent(e.target.value)}
-                        className="min-w-[190px] flex-1 text-sm sm:flex-none"
+                        className="min-w-0 flex-1 text-xs sm:min-w-[190px] sm:flex-none sm:text-sm [&>select]:py-2 [&>select]:pl-3 [&>select]:pr-8 sm:[&>select]:py-3 sm:[&>select]:pl-4 sm:[&>select]:pr-10"
                     >
                         <option value="">Todos los eventos</option>
                         {eventos.map((ev) => (
@@ -423,7 +436,7 @@ export default function GalleryClient() {
                         onClick={() => setShowGridModal(true)}
                         aria-label="Ver en cuadrícula"
                         title="Ver en cuadrícula"
-                        className="h-[46px] w-[46px] !p-0"
+                        className="h-9 w-9 !p-0 sm:h-[46px] sm:w-[46px]"
                     >
                         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6">
                             <rect x="4" y="4" width="6.5" height="6.5" rx="1.6" />
@@ -434,7 +447,7 @@ export default function GalleryClient() {
                     </GlassButton>
 
                     {/* Control segmentado de vista */}
-                    <div role="radiogroup" aria-label="Vista" className="flex rounded-[14px] bg-black/20 p-1">
+                    <div role="radiogroup" aria-label="Vista" className="flex rounded-[12px] bg-black/20 p-0.5 sm:rounded-[14px] sm:p-1">
                         {([['wall', 'Muro'], ['flight', 'Vuelo']] as const).map(([mode, label]) => (
                             <GlassButton
                                 key={mode}
@@ -444,14 +457,14 @@ export default function GalleryClient() {
                                 radius={10}
                                 selected={viewMode === mode}
                                 onClick={() => changeViewMode(mode)}
-                                className={viewMode === mode ? '' : '!bg-transparent !shadow-none text-white/65'}
+                                className={`!px-2.5 !py-1.5 text-xs sm:!px-3.5 sm:!py-2 sm:text-sm ${viewMode === mode ? '' : '!bg-transparent !shadow-none text-white/65'}`}
                             >
                                 {label}
                             </GlassButton>
                         ))}
                     </div>
 
-                    <GlassButton onClick={() => router.push('/')}>Inicio</GlassButton>
+                    <GlassButton onClick={() => router.push('/')} className="!px-3 !py-2 text-xs sm:!px-5 sm:!py-2.5 sm:text-sm">Inicio</GlassButton>
                 </Glass>
 
                 <div className="absolute inset-0 z-0">
