@@ -18,3 +18,14 @@ export function isValidFilename(value: unknown): value is string {
 export function isModerationFolder(value: unknown): value is ModerationFolder {
   return typeof value === 'string' && (MODERATION_FOLDERS as readonly string[]).includes(value)
 }
+
+const HASHTAG = /^[\p{L}\p{N}_]{1,40}$/u
+const MAX_HASHTAGS = 6
+
+// "Shift2025, #trading" -> "#Shift2025 #trading". null si alguno trae caracteres no válidos.
+export function normalizeHashtags(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const tags = value.split(/[\s,]+/).map(t => t.replace(/^#+/, '')).filter(Boolean)
+  if (tags.length > MAX_HASHTAGS || !tags.every(t => HASHTAG.test(t))) return null
+  return [...new Set(tags)].map(t => `#${t}`).join(' ')
+}

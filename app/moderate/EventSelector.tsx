@@ -10,6 +10,7 @@ type Event = {
   color?: string
   logo?: string
   destacado?: boolean
+  hashtags?: string
 }
 
 const MAX_LOGO_SIZE_MB = 10
@@ -34,6 +35,9 @@ export default function EventSelector({
   const [status, setStatus] = useState('')
   const [updatingFeatured, setUpdatingFeatured] = useState(false)
   const [featuredStatus, setFeaturedStatus] = useState('')
+  const [hashtags, setHashtags] = useState('')
+  const [savingHashtags, setSavingHashtags] = useState(false)
+  const [hashtagsStatus, setHashtagsStatus] = useState('')
 
   useEffect(() => {
     fetchEvents()
@@ -57,6 +61,8 @@ export default function EventSelector({
   useEffect(() => {
     if (selectedEvent) {
       setNewColor(selectedEvent.color || '#000000')
+      setHashtags(selectedEvent.hashtags || '')
+      setHashtagsStatus('')
     }
   }, [selectedEvent])
 
@@ -154,6 +160,27 @@ export default function EventSelector({
       setStatus(`${err instanceof Error ? err.message : 'Error al actualizar color'}`)
     } finally {
       setUpdatingColor(false)
+    }
+  }
+
+  const handleSaveHashtags = async () => {
+    if (!selectedEvent) return
+    setSavingHashtags(true)
+    setHashtagsStatus('')
+    try {
+      const res = await fetch('/api/update-event-hashtags', {
+        method: 'POST',
+        body: JSON.stringify({ eventId: selectedEvent.id, hashtags }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al guardar hashtags')
+      await fetchEvents()
+      setHashtagsStatus('Guardados')
+    } catch (err) {
+      setHashtagsStatus(err instanceof Error ? err.message : 'Error al guardar hashtags')
+    } finally {
+      setSavingHashtags(false)
     }
   }
 
@@ -260,6 +287,33 @@ export default function EventSelector({
             >
               {updatingFeatured ? 'Guardando...' : selectedEvent.destacado ? 'Quitar destacado' : 'Destacar'}
             </GlassButton>
+          </Glass>
+
+          {/* Hashtags del evento: van al final al compartir una foto y de la descripción en el visor */}
+          <Glass radius={20} frost="regular" refraction={0} className="mb-6 space-y-3 p-4">
+            <div>
+              <p className="text-sm font-medium text-white/90">Hashtags del evento</p>
+              <p className="mt-1 text-xs text-white/50">Se agregan al final al compartir una foto y en su descripción. Máximo 6.</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <GlassInput
+                type="text"
+                value={hashtags}
+                onChange={e => setHashtags(e.target.value)}
+                placeholder="#Shift2025 #Trading"
+                disabled={savingHashtags}
+                className="flex-1"
+              />
+              <GlassButton
+                onClick={handleSaveHashtags}
+                disabled={savingHashtags || hashtags === (selectedEvent.hashtags || '')}
+                selected
+                className="shrink-0"
+              >
+                {savingHashtags ? 'Guardando...' : 'Guardar'}
+              </GlassButton>
+            </div>
+            {hashtagsStatus && <p className="text-xs text-white/80">{hashtagsStatus}</p>}
           </Glass>
 
           {/* Action Buttons */}

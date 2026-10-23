@@ -22,6 +22,7 @@ export async function GET() {
         color: e.color,
         logo: e.logo,
         destacado: e.destacado === true,
+        hashtags: e.hashtags ?? '',
       }))
     )
   } catch (err) {

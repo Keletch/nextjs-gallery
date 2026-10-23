@@ -44,6 +44,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
   const [info, setInfo] = useState<{
     evento: string
     description: string
+    hashtags: string
     created_at: string
   } | null>(null)
 
@@ -70,21 +71,17 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
       }
 
       const eventoRaw = data.evento
-      let eventoNombre = eventoRaw
 
       const { data: eventoData } = await supabaseClient
         .from('events')
-        .select('nombre')
+        .select('nombre, hashtags')
         .eq('ruta', eventoRaw)
         .maybeSingle()
 
-      if (eventoData?.nombre) {
-        eventoNombre = eventoData.nombre
-      }
-
       setInfo({
-        evento: eventoNombre,
-        description: data.description || 'Sin descripción',
+        evento: eventoData?.nombre || eventoRaw,
+        description: data.description || '',
+        hashtags: eventoData?.hashtags || '',
         created_at: data.created_at,
       })
 
@@ -94,14 +91,17 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
     fetchInfo()
   }, [hash])
 
+  // Texto al compartir: hashtags al final (los del proyecto y luego los del evento)
+  const shareText = `¡Estoy en el evento ${info?.evento}! #elclubdeinversionistas #hyenukchu ${info?.hashtags ?? ''}`.trim()
+
   const shareOnX = () => {
-    const text = encodeURIComponent(`#elclubdeinversionistas #hyenukchu, ¡Estoy en el evento!: ${info?.evento}`)
+    const text = encodeURIComponent(shareText)
     const url = encodeURIComponent(`https://galeria.chu.mx/gallery?open=${hash}`)
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank')
   }
 
   const shareOnWhatsApp = () => {
-    const text = encodeURIComponent(`#elclubdeinversionistas #hyenukchu, ¡Estoy en el evento!: ${info?.evento}\nhttps://galeria.chu.mx/gallery?open=${hash}`)
+    const text = encodeURIComponent(`${shareText}\nhttps://galeria.chu.mx/gallery?open=${hash}`)
     window.open(`https://wa.me/?text=${text}`, '_blank')
   }
 
@@ -149,7 +149,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
         <TypewriterText text={info.evento} speed={30} />
       </p>
       <p className="mb-2 text-[15px] text-white/90">
-        <TypewriterText text={info.description} delay={500} speed={20} />
+        <TypewriterText text={`${info.description} ${info.hashtags}`.trim() || 'Sin descripción'} delay={500} speed={20} />
       </p>
       <p className="mb-5 text-xs text-white/65">
         <TypewriterText
