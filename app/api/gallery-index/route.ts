@@ -39,7 +39,9 @@ export async function GET(req: Request) {
     }
 
     const response = NextResponse.json(files)
-    response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600')
+    // Caché corto en la CDN: una foto recién aprobada aparece al recargar en segundos (con 5 min se
+    // tardaba hasta 15), y Storage se sigue listando como mucho unas pocas veces por minuto por evento
+    response.headers.set('Cache-Control', 's-maxage=15, stale-while-revalidate=45')
     return response
   } catch (err) {
     console.error('Error en /api/gallery-index:', err)
