@@ -32,6 +32,14 @@ export async function moveFile(filename: string, from: string, to: string): Prom
 
     const { error } = await supabase.storage.from(BUCKET).move(source, destination)
     if (error) throw new Error(`Error al mover: ${error.message}`)
+
+    // Marca de aprobación: la galería abierta la recibe por Realtime y muestra (o quita) la foto
+    // sin recargar. Si falla solo se pierde el aviso en vivo, la foto ya quedó movida.
+    const { error: markError } = await supabase
+        .from('imageInfo')
+        .update({ aprobada_en: to.endsWith('/approved') ? new Date().toISOString() : null })
+        .eq('imghash', filename.replace(/\.webp$/, ''))
+    if (markError) console.error('[moveFile] No se pudo marcar aprobada_en:', markError.message)
 }
 
 // ❌ Eliminar archivo

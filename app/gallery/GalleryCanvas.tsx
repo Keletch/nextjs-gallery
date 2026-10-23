@@ -43,7 +43,7 @@ function disposeTexture(texture: Texture) {
     image?.close?.()
 }
 
-function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'eventId'>) {
+function GalleryScene({ images, urls, onSelect, eventId }: GalleryCanvasProps) {
     const gl = useThree((state) => state.gl)
 
     // Solo se montan las imágenes activas. El resto espera en un "mazo" barajado;
@@ -128,6 +128,13 @@ function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'even
         toDispose.current = []
     }, [active])
 
+    // Fotos nuevas del mismo evento (aprobadas en vivo): solo se suman al mazo, sin reiniciar la escena.
+    // Va antes del reinicio para que, al cambiar de evento, este ya baraje la lista nueva.
+    useEffect(() => {
+        urlsRef.current = urls
+        pool.current = images.filter(f => urls[f]?.thumb)
+    }, [images, urls])
+
     // Nuevo evento: reiniciar mazo y empezar de 0
     useEffect(() => {
         generation.current++
@@ -136,10 +143,8 @@ function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'even
         ready.current = []
         pending.current.clear()
 
-        urlsRef.current = urls
-        pool.current = images.filter(f => urls[f]?.thumb)
         deck.current = shuffle(pool.current)
-        // Reinicio intencional: la lista de imágenes cambió (nuevo evento)
+        // Reinicio intencional: cambió el evento
         // eslint-disable-next-line react-hooks/set-state-in-effect
         commitActive([])
         prefetch()
@@ -153,7 +158,7 @@ function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'even
 
         return () => clearInterval(interval)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [images, urls])
+    }, [eventId])
 
     // Al desmontar la galería, liberar todo
     useEffect(() => {
@@ -200,7 +205,7 @@ function GalleryScene({ images, urls, onSelect }: Omit<GalleryCanvasProps, 'even
     )
 }
 
-export default function GalleryCanvas({ images, urls, onSelect, paused = false }: GalleryCanvasProps) {
+export default function GalleryCanvas({ images, urls, onSelect, eventId, paused = false }: GalleryCanvasProps) {
     return (
         <Canvas
             camera={{ position: [0, 0, 5], fov: 60 }}
@@ -208,7 +213,7 @@ export default function GalleryCanvas({ images, urls, onSelect, paused = false }
             frameloop={paused ? 'never' : 'always'}
             gl={{ powerPreference: 'high-performance' }}
         >
-            <GalleryScene images={images} urls={urls} onSelect={onSelect} />
+            <GalleryScene images={images} urls={urls} onSelect={onSelect} eventId={eventId} />
         </Canvas>
     )
 }

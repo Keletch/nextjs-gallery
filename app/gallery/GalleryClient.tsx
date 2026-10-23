@@ -7,6 +7,7 @@ import useGallerySpeed from './UseGallerySpeed'
 import FullscreenViewer from './FullscreenViewer'
 import DriftWall, { type DriftWallItem } from '@/components/DriftWall'
 import Glass, { GlassButton, GlassSelect } from '@/components/Glass'
+import { supabaseClient } from '@/lib/supabase-client'
 
 // ⚡ Lazy load de componentes pesados (Three.js)
 const GalleryCanvas = dynamic(() => import('./GalleryCanvas'), {
@@ -272,7 +273,8 @@ export default function GalleryClient() {
 
             // Wrap state updates in startTransition to prevent UI freeze
             startTransition(() => {
-                setImages(validList.map((item) => item.filename))
+                // Barajada una vez al cargar: las fotos aprobadas en vivo se suman al final sin revolver el muro
+                setImages(shuffle(validList.map((item) => item.filename)))
                 setUrls(Object.fromEntries(entries))
                 setLoadedEvent(selectedEvent)
             })
@@ -331,10 +333,41 @@ export default function GalleryClient() {
         }
     }, [selectedEvent, eventos])
 
-    // Fichas del muro: barajadas cada vez que cambia la lista para que no salgan siempre en el mismo orden
+    // Fotos en vivo: al aprobarse una foto (aprobada_en) aparece sin recargar; si se rechaza, se quita.
+    // El evento se lee de una ref para no volver a suscribirse en cada cambio de evento.
+    const loadedEventRef = useRef(loadedEvent)
+    useEffect(() => { loadedEventRef.current = loadedEvent }, [loadedEvent])
+    useEffect(() => {
+        const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
+        const channel = supabaseClient
+            .channel('fotos-aprobadas')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'imageInfo' }, ({ new: row }) => {
+                const { imghash, evento, aprobada_en } = row as { imghash: string; evento: string; aprobada_en: string | null }
+                const shown = loadedEventRef.current
+                if (shown === null || (shown !== '' && evento !== shown)) return
+                const filename = `${imghash}.webp`
+                if (aprobada_en) {
+                    setUrls(prev => prev[filename] ? prev : {
+                        ...prev,
+                        [filename]: {
+                            thumb: `${base}/${evento}/thumbnails/thumb_${filename}`,
+                            full: `${base}/${evento}/approved/${filename}`,
+                            evento,
+                        },
+                    })
+                    setImages(prev => prev.includes(filename) ? prev : [...prev, filename])
+                } else {
+                    setImages(prev => prev.filter(f => f !== filename))
+                }
+            })
+            .subscribe()
+        return () => { supabaseClient.removeChannel(channel) }
+    }, [])
+
+    // Fichas del muro (la lista ya viene barajada al cargar)
     const wallItems = useMemo<DriftWallItem[]>(() => {
         const nombres = new Map(eventos.map(e => [e.ruta, e.nombre]))
-        return shuffle(images)
+        return images
             .filter(filename => urls[filename]?.thumb)
             .map(filename => ({
                 id: filename,
@@ -439,7 +472,7 @@ export default function GalleryClient() {
                             </div>
                         )
                     ) : (
-                        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={selectedEvent} paused={overlayOpen} />
+                        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={loadedEvent ?? ''} paused={overlayOpen} />
                     )}
                 </div>
 
