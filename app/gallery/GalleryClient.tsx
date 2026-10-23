@@ -163,9 +163,11 @@ export default function GalleryClient() {
     const [loadedEvent, setLoadedEvent] = useState<string | null>(null)
 
     const [showGridModal, setShowGridModal] = useState(false)
-    const [logoUrl, setLogoUrl] = useState<string>('/cdiLogo.png')
-    const [isLogoTransitioning, setIsLogoTransitioning] = useState(false)
-    const logoUrlRef = useRef('/cdiLogo.png')
+    // Sin logo hasta saber cuál va (el del evento destacado o el del Club): antes salía el del Club y
+    // luego se cambiaba al del destacado
+    const [logoUrl, setLogoUrl] = useState<string>('')
+    const [isLogoTransitioning, setIsLogoTransitioning] = useState(true)
+    const logoUrlRef = useRef('')
     const [eventosLoaded, setEventosLoaded] = useState(false)
     const [viewMode, setViewMode] = useState<ViewMode>('wall')
     // Solo afecta al muro, que se renderiza en el cliente después de cargar las fotos
@@ -293,6 +295,7 @@ export default function GalleryClient() {
     // decodifica; recién con el nuevo listo se cambia y aparece (antes se cambiaba antes de cargar
     // y se veía el logo viejo nítido y luego el nuevo de golpe)
     useEffect(() => {
+        if (!eventosLoaded) return
         let newLogoUrl = '/cdiLogo.png'
         if (selectedEvent) {
             const evento = eventos.find(e => e.ruta === selectedEvent)
@@ -322,7 +325,8 @@ export default function GalleryClient() {
             loaded.then(() => Promise.race([preload.decode().catch(() => undefined), wait(300)])),
             wait(2500),
         ])
-        Promise.all([ready, wait(LOGO_FADE_MS)]).then(() => {
+        // El primero no espera el desvanecido: no hay logo anterior que ocultar
+        Promise.all([ready, wait(logoUrlRef.current ? LOGO_FADE_MS : 0)]).then(() => {
             if (cancelled) return
             logoUrlRef.current = newLogoUrl
             setLogoUrl(newLogoUrl)
@@ -337,7 +341,7 @@ export default function GalleryClient() {
         return () => {
             cancelled = true
         }
-    }, [selectedEvent, eventos])
+    }, [selectedEvent, eventos, eventosLoaded])
 
     // Fotos en vivo: al aprobarse una foto (aprobada_en) aparece sin recargar; si se rechaza, se quita.
     // El evento se lee de una ref para no volver a suscribirse en cada cambio de evento.
@@ -382,7 +386,7 @@ export default function GalleryClient() {
             }))
     }, [images, urls, eventos])
 
-    const layout = wallLayout(viewportWidth, viewportHeight, composition)
+    const layout = useMemo(() => wallLayout(viewportWidth, viewportHeight, composition), [viewportWidth, viewportHeight, composition])
 
     // Con el modal o el visor abiertos se pausa lo de atrás: su vidrio grande recalculaba refracción y
     // desenfoque en cada cuadro sobre contenido en movimiento (bajaba a ~5 fps)
@@ -455,6 +459,8 @@ export default function GalleryClient() {
                         wallItems.length > 0 ? (
                             <DriftWall
                                 items={wallItems}
+                                transitionKey={selectedEvent}
+                                itemsKey={loadedEvent ?? ''}
                                 columns={layout.lanes.length}
                                 lanes={layout.lanes}
                                 orientation={composition.orientation}
@@ -473,9 +479,12 @@ export default function GalleryClient() {
                                 onItemClick={(item) => item.id && urls[item.id] && handleSelect(urls[item.id].full)}
                             />
                         ) : (
-                            <div className="h-full w-full flex items-center justify-center text-white/50 text-sm">
-                                {loadedEvent === selectedEvent ? 'Aún no hay fotos en este evento' : 'Cargando fotos…'}
-                            </div>
+                            // Mientras cargan no se muestra texto: el muro entra con su animación
+                            loadedEvent === selectedEvent && (
+                                <div className="h-full w-full flex items-center justify-center text-white/50 text-sm">
+                                    Aún no hay fotos en este evento
+                                </div>
+                            )
                         )
                     ) : (
                         <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={loadedEvent ?? ''} paused={overlayOpen} />
@@ -487,11 +496,11 @@ export default function GalleryClient() {
                 )}
 
 
-                <img
+                {logoUrl && <img
                     src={logoUrl}
                     alt="Galería"
                     className={`absolute bottom-5 right-5 z-10 h-auto w-[min(120px,20vw)] pointer-events-none transition-[opacity,filter,transform] duration-500 ease-in-out drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] ${isLogoTransitioning ? 'opacity-0 blur-md scale-95' : 'opacity-80 blur-0 scale-100'}`}
-                />
+                />}
             </div>
 
             {showGridModal && (

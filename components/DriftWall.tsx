@@ -13,7 +13,7 @@
 //   antes no recibía el clic, así que fallaba cerca de los bordes).
 // - Desvanecido solo arriba y abajo (en DriftWall.css).
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './DriftWall.css';
 
 export type DriftWallItem = {
@@ -25,6 +25,11 @@ export type DriftWallItem = {
 
 type DriftWallProps = {
   items?: DriftWallItem[];
+  /** Evento a mostrar. Si cambia, las fotos salen en orden aleatorio, el muro se reacomoda sin verse
+   * y entran las nuevas cuando itemsKey coincida (items ya trae las fotos de ese evento) */
+  transitionKey?: string;
+  /** Evento al que pertenece items */
+  itemsKey?: string;
   /** Cantidad de carriles (columnas en vertical, filas en horizontal) */
   columns?: number;
   orientation?: 'vertical' | 'horizontal';
@@ -85,11 +90,54 @@ const columnFactor = (index: number, variance: number) => {
 
 // Ventana tras la primera foto lista en la que las fotos aparecen con animación
 const INTRO_WINDOW_MS = 3000;
-// La entrada se ve una sola vez por carga del sitio (no al cambiar de evento ni de vista)
-let introPlayed = false;
+// Cambio de evento: los carriles se apagan y encienden uno por uno (cada carril ya es una capa propia,
+// así que animar su opacidad es casi gratis; animar cientos de fotos a la vez congelaba el muro)
+const LANE_STAGGER_MS = 60;
+const LANE_FADE_MS = 350;
+// Tope de espera a que carguen las fotos visibles de un carril antes de encenderlo
+const LANE_LOAD_WAIT_MS = 1200;
+
+// Retraso de entrada/salida de cada foto (0–500 ms), aleatorio pero estable por foto
+const tileDelay = (id: string) => {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return `${Math.abs(h) % 500}ms`;
+};
+
+type LaneProps = {
+  c: number;
+  items: DriftWallItem[];
+  copies: number;
+  tileW?: string;
+  tileH?: string;
+  setTrackRef: (c: number, el: HTMLDivElement | null) => void;
+  renderTile: (item: DriftWallItem, id: string, colIndex: number, itemIndex: number) => React.ReactNode;
+};
+
+// Un carril. Memoizado: solo se vuelve a renderizar si cambian sus fotos o su tamaño. Antes cualquier
+// cambio de estado del muro recorría las ~370 fichas (~45 ms) y trababa el cambio de evento.
+const Lane = memo(function Lane({ c, items, copies, tileW, tileH, setTrackRef, renderTile }: LaneProps) {
+  return (
+    <div
+      className="drift-wall__col"
+      style={tileW ? ({ '--dw-tile-w': tileW, '--dw-tile-h': tileH } as React.CSSProperties) : undefined}
+    >
+      <div className="drift-wall__track" ref={el => setTrackRef(c, el)}>
+        {Array.from({ length: copies }, (_, copyIndex) =>
+          items.map((item, itemIndex) =>
+            // Key por posición: al cambiar de evento se reutiliza la ficha y solo cambia su foto
+            renderTile(item, `${c}-${copyIndex}-${itemIndex}`, c, itemIndex)
+          )
+        )}
+      </div>
+    </div>
+  );
+});
 
 const DriftWall = ({
   items = DEFAULT_ITEMS,
+  transitionKey = '',
+  itemsKey = '',
   columns = 5,
   orientation = 'vertical',
   tileWidth = 200,
@@ -181,8 +229,107 @@ const DriftWall = ({
     return (mainLen * Math.abs(Math.cos(rad)) + crossLen * Math.abs(Math.sin(rad))) * SPAN_FACTOR;
   }, [horizontal, containerWidth, containerHeight, roll]);
 
-  const columnItems = useMemo(() => {
-    const n = items.length;
+  // Fotos que se pintan. Cambian de inmediato si es el mismo evento (fotos aprobadas en vivo); si cambia
+  // el evento, se apagan los carriles (phase 'exit'), se cambia la foto de cada ficha y se encienden.
+  // 'enter' es solo la entrada de la primera carga (foto por foto, con desenfoque).
+  const [shown, setShown] = useState({ items, key: itemsKey });
+  const shownItems = shown.items;
+  const [phase, setPhase] = useState<'enter' | 'idle' | 'exit'>('enter');
+  const [exitDone, setExitDone] = useState(false);
+  // Se cambiaron las fotos tras apagar los carriles: encenderlos cuando ya estén pintadas
+  const swappedRef = useRef(false);
+  // Durante el cambio de evento, lo que se pinta de cada carril: se pasa a las fotos nuevas carril por
+  // carril (repartiendo el trabajo) justo antes de encenderlo. null = se pintan las fotos actuales.
+  const [stagedLanes, setStagedLanes] = useState<DriftWallItem[][] | null>(null);
+  const displayedRef = useRef<DriftWallItem[][]>([]);
+
+  // Apaga o enciende los carriles en orden aleatorio. Al encender, cada carril espera a que carguen
+  // sus fotos visibles (con tope) para no aparecer vacío.
+  const laneTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const laneRunRef = useRef(0);
+  const fadeLanes = useCallback((visible: boolean, swapTo?: DriftWallItem[][]) => {
+    laneTimersRef.current.forEach(clearTimeout);
+    laneTimersRef.current = [];
+    const run = ++laneRunRef.current;
+    let done = 0;
+    const tracks = trackRefs.current.filter((t): t is HTMLDivElement => !!t);
+    const order = tracks.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    order.forEach((idx, k) => {
+      laneTimersRef.current.push(setTimeout(async () => {
+        const track = tracks[idx];
+        if (swapTo) {
+          setStagedLanes(prev => {
+            if (!prev) return prev;
+            const next = [...prev];
+            next[idx] = swapTo[idx] ?? [];
+            return next;
+          });
+          // Dejar que React pinte las fotos nuevas de este carril antes de esperar su carga
+          await new Promise(resolve => setTimeout(resolve, 40));
+          if (run !== laneRunRef.current) return;
+        }
+        if (visible) {
+          const box = containerRef.current?.getBoundingClientRect();
+          const imgs = Array.from(track.querySelectorAll('img')).filter(img => {
+            const r = img.getBoundingClientRect();
+            return box && r.bottom > box.top && r.top < box.bottom && r.right > box.left && r.left < box.right;
+          });
+          await Promise.race([
+            Promise.all(imgs.map(img => img.decode().catch(() => undefined))),
+            new Promise(resolve => setTimeout(resolve, LANE_LOAD_WAIT_MS))
+          ]);
+        }
+        if (run !== laneRunRef.current) return;
+        track.style.opacity = visible ? '' : '0';
+        if (swapTo && ++done === order.length) setStagedLanes(null);
+      }, k * LANE_STAGGER_MS));
+    });
+  }, []);
+  useEffect(() => () => laneTimersRef.current.forEach(clearTimeout), []);
+
+  useEffect(() => {
+    if (transitionKey === shown.key) {
+      // Se volvió al evento que ya estaba a media salida: los carriles regresan sin reacomodar
+      if (phase === 'exit') {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setPhase('idle');
+        setStagedLanes(null);
+        fadeLanes(true);
+      }
+      if (itemsKey === shown.key && items !== shown.items) setShown({ items, key: itemsKey });
+      return;
+    }
+    if (phase !== 'exit') {
+      setPhase('exit');
+      setExitDone(false);
+      return;
+    }
+    // Ya se apagaron los carriles y llegaron las fotos del evento nuevo: se cambia la foto de cada ficha
+    // (las fichas y el movimiento siguen) y se encienden los carriles
+    if (exitDone && itemsKey === transitionKey) {
+      setStagedLanes(displayedRef.current);
+      setShown({ items, key: itemsKey });
+      setPhase('idle');
+      swappedRef.current = true;
+    }
+  }, [items, itemsKey, transitionKey, shown, phase, exitDone, fadeLanes]);
+
+
+  useEffect(() => {
+    if (phase !== 'exit') return;
+    fadeLanes(false);
+    const t = setTimeout(() => setExitDone(true), columns * LANE_STAGGER_MS + LANE_FADE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // Reparto de las fotos actuales en los carriles
+  const targetLanes = useMemo(() => {
+    const n = shownItems.length;
     if (n === 0) return Array.from({ length: columns }, () => [] as DriftWallItem[]);
 
     // Fichas que caben a lo largo de un carril
@@ -191,7 +338,7 @@ const DriftWall = ({
     // Suficientes fotos: cada una aparece en un solo carril y no se repite a la vista
     if (n >= columns * visiblePerLane) {
       const cols: DriftWallItem[][] = Array.from({ length: columns }, () => []);
-      items.forEach((item, i) => cols[i % columns].push(item));
+      shownItems.forEach((item, i) => cols[i % columns].push(item));
       return cols;
     }
 
@@ -200,9 +347,22 @@ const DriftWall = ({
     const perLane = Math.min(n, Math.max(Math.ceil(n / columns), visiblePerLane));
     const step = Math.max(1, Math.floor(n / columns));
     return Array.from({ length: columns }, (_, c) =>
-      Array.from({ length: perLane }, (_, k) => items[(c * step + k) % n])
+      Array.from({ length: perLane }, (_, k) => shownItems[(c * step + k) % n])
     );
-  }, [items, columns, planeMain, minUnit]);
+  }, [shownItems, columns, planeMain, minUnit]);
+
+  // Lo que se pinta: el reparto actual, o durante un cambio de evento la mezcla carril por carril
+  const columnItems = stagedLanes ?? targetLanes;
+  useEffect(() => {
+    displayedRef.current = columnItems;
+  }, [columnItems]);
+
+  // Fotos del evento nuevo listas: encender los carriles pasando cada uno a sus fotos nuevas
+  useEffect(() => {
+    if (!swappedRef.current) return;
+    swappedRef.current = false;
+    fadeLanes(true, targetLanes);
+  }, [targetLanes, fadeLanes]);
 
   const columnMeta = useMemo(() => {
     return columnItems.map((col, c) => {
@@ -237,9 +397,14 @@ const DriftWall = ({
     });
   }, [columnItems, speed, direction, variance, lanes]);
 
+  // Al cambiar las fotos (otro evento, fotos en vivo) cada carril sigue desde donde iba y a la misma
+  // velocidad; solo los carriles nuevos arrancan desde una posición desfasada
   useEffect(() => {
-    offsetsRef.current = columnMeta.map((meta, c) => meta.copyHeight * ((c * 0.37) % 1));
-    velocitiesRef.current = columnItems.map(() => 0);
+    offsetsRef.current = columnMeta.map((meta, c) => {
+      const prev = offsetsRef.current[c];
+      return prev === undefined ? meta.copyHeight * ((c * 0.37) % 1) : prev % meta.copyHeight;
+    });
+    velocitiesRef.current = columnItems.map((_, c) => velocitiesRef.current[c] ?? 0);
   }, [columnMeta, columnItems]);
 
   const applyPlaneTransform = useCallback(
@@ -302,7 +467,7 @@ const DriftWall = ({
       centerOffsetRef.current += delta;
     }
     applyPlaneTransform(pointerDampedRef.current.x, pointerDampedRef.current.y);
-  }, [applyPlaneTransform, horizontal, roll, columnMeta, containerWidth, containerHeight, tileWidth, tileHeight, gap, perspective]);
+  }, [applyPlaneTransform, horizontal, roll, lanes, columns, containerWidth, containerHeight, tileWidth, tileHeight, gap, perspective]);
 
   useEffect(() => {
     // En pausa no corre el loop: nada cambia detrás del vidrio y el navegador no recalcula sus filtros
@@ -362,19 +527,26 @@ const DriftWall = ({
     markActive(null);
   }, [markActive]);
 
-  // Entrada suave solo al cargar el sitio: las fotos que cargan en los primeros segundos aparecen con
-  // fade y desenfoque (como la cuadrícula). Después, las que van entrando aparecen sin animación, y al
-  // cambiar de evento o de vista no se repite. Cada foto se marca con una clase en el DOM para no volver
-  // a renderizar todo el muro por cada imagen.
-  const [intro, setIntro] = useState(() => !introPlayed);
+  // Entrada (al montar y en cada cambio de evento): las fotos que cargan en los primeros segundos
+  // aparecen con fade y desenfoque, cada una con su retraso aleatorio. Después, las que van entrando
+  // aparecen sin animación. Cada foto se marca con una clase en el DOM para no volver a renderizar
+  // todo el muro por cada imagen.
   const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const phaseRef = useRef(phase);
+  useEffect(() => {
+    phaseRef.current = phase;
+    if (phase !== 'enter' && introTimerRef.current) {
+      clearTimeout(introTimerRef.current);
+      introTimerRef.current = null;
+    }
+  }, [phase]);
   const reveal = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.classList.add('is-loaded');
     // La ventana de entrada empieza con la primera foto lista
-    if (!introPlayed && !introTimerRef.current) {
+    if (phaseRef.current === 'enter' && !introTimerRef.current) {
       introTimerRef.current = setTimeout(() => {
-        introPlayed = true;
-        setIntro(false);
+        introTimerRef.current = null;
+        setPhase(p => (p === 'enter' ? 'idle' : p));
       }, INTRO_WINDOW_MS);
     }
   }, []);
@@ -505,7 +677,16 @@ const DriftWall = ({
     [tileWidth, tileHeight, gap, radius, perspective, lift, dim, overlayColor, overlayOpacity, fade, style]
   );
 
-  const renderTile = (item: DriftWallItem, id: string, colIndex: number, itemIndex: number) => {
+  // Estable entre renders (los carriles memoizados lo reciben); onItemClick se lee de una ref porque
+  // suele llegar como función nueva en cada render
+  const onItemClickRef = useRef(onItemClick);
+  useEffect(() => {
+    onItemClickRef.current = onItemClick;
+  }, [onItemClick]);
+  const setTrackRef = useCallback((c: number, el: HTMLDivElement | null) => {
+    trackRefs.current[c] = el;
+  }, []);
+  const renderTile = useCallback((item: DriftWallItem, id: string, colIndex: number, itemIndex: number) => {
     const inner = (
       <span className="drift-wall__inner">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -527,6 +708,7 @@ const DriftWall = ({
       'data-tile-id': id,
       'data-col': colIndex,
       'data-idx': itemIndex,
+      style: { '--dw-delay': tileDelay(id) } as React.CSSProperties,
       onFocus: (e: React.FocusEvent<HTMLElement>) => activate(e.currentTarget, id, colIndex),
       onBlur: release
     };
@@ -543,28 +725,24 @@ const DriftWall = ({
         tabIndex={0}
         role="button"
         aria-label={item.title ?? 'tile'}
-        onKeyDown={
-          onItemClick
-            ? e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onItemClick(item);
-                }
-              }
-            : undefined
-        }
+        onKeyDown={e => {
+          if (onItemClickRef.current && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onItemClickRef.current(item);
+          }
+        }}
         {...commonProps}
       >
         {inner}
       </div>
     );
-  };
+  }, [activate, release, reveal, revealIfCached]);
 
   const rootClass = [
     'drift-wall',
     horizontal ? 'drift-wall--horizontal' : '',
     lift !== 0 ? 'drift-wall--lift' : '',
-    intro ? 'drift-wall--intro' : '',
+    phase === 'enter' ? 'drift-wall--intro' : '',
     grayscale ? 'drift-wall--gray' : '',
     reduced ? 'drift-wall--reduced' : '',
     className
@@ -593,33 +771,18 @@ const DriftWall = ({
         className="drift-wall__plane"
         style={horizontal ? { width: planeMain } : { height: planeMain }}
       >
-        {columnItems.map((col, c) => {
-          const meta = columnMeta[c];
-          const copies = Array.from({ length: meta.copies });
-          return (
-            <div
-              className="drift-wall__col"
-              key={`col-${c}`}
-              style={lanes ? ({
-                '--dw-tile-w': `${tileWidth * laneScale(c)}px`,
-                '--dw-tile-h': `${tileHeight * laneScale(c)}px`
-              } as React.CSSProperties) : undefined}
-            >
-              <div
-                className="drift-wall__track"
-                ref={el => {
-                  trackRefs.current[c] = el;
-                }}
-              >
-                {copies.map((_, copyIndex) =>
-                  col.map((item, itemIndex) =>
-                    renderTile(item, `${c}-${copyIndex}-${itemIndex}-${item.id ?? ''}`, c, itemIndex)
-                  )
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {columnItems.map((col, c) => (
+          <Lane
+            key={`col-${c}`}
+            c={c}
+            items={col}
+            copies={columnMeta[c].copies}
+            tileW={lanes ? `${tileWidth * laneScale(c)}px` : undefined}
+            tileH={lanes ? `${tileHeight * laneScale(c)}px` : undefined}
+            setTrackRef={setTrackRef}
+            renderTile={renderTile}
+          />
+        ))}
       </div>
     </div>
   );

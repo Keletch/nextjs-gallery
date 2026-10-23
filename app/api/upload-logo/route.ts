@@ -38,8 +38,10 @@ export async function POST(req: NextRequest) {
         // Read file buffer
         const buffer = Buffer.from(await file.arrayBuffer())
 
-        // Convert to webp with same quality as regular uploads (no resizing)
+        // Máximo 600 px: el logo se muestra a ~120 px. Un logo de 6544 px congelaba la galería al
+        // cambiar de evento mientras el navegador lo decodificaba (~80 MB en memoria)
         const webpBuffer = await sharp(buffer)
+            .resize({ width: 600, height: 600, fit: 'inside', withoutEnlargement: true })
             .webp({ quality: 95, effort: 4 })
             .toBuffer()
 

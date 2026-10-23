@@ -59,6 +59,8 @@
   flex-direction: column;
   will-change: transform;
   transform-style: preserve-3d;
+  /* Cambio de evento: cada carril se apaga y enciende entero (ver fadeLanes) */
+  transition: opacity 0.35s ease;
 }
 
 .drift-wall__tile {
@@ -78,7 +80,8 @@
   display: block;
   border-radius: var(--dw-radius);
   overflow: hidden;
-  background: #0b0b12;
+  /* Sin fondo: mientras carga no se ve el recuadro, solo aparece la foto */
+  background: transparent;
   opacity: var(--dw-dim);
   /* Sin translateZ(0): convertía cada foto en una capa de composición propia (cientos por cuadro) */
   /* Recibe el puntero: el clic y el hover caen donde se ve la foto (también cuando está elevada) */
@@ -108,11 +111,12 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Transición de la entrada al cargar el sitio (ver .drift-wall--intro) */
+  /* Entrada y salida (ver .drift-wall--intro y --exit), cada foto con su retraso aleatorio */
   transition:
-    opacity 0.7s ease-out,
-    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.7s ease-out;
+    opacity 0.5s ease-out,
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.5s ease-out;
+  transition-delay: var(--dw-delay, 0ms);
   user-select: none;
   -webkit-user-drag: none;
 }

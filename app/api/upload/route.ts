@@ -111,14 +111,16 @@ export async function POST(req: NextRequest) {
       .webp({ quality: 95, effort: 4 })
       .toBuffer()
 
+    // 480 px: en el muro una foto se ve a ~180–450 px. Con 800 px el cambio de evento se trababa
+    // decodificando decenas de fotos grandes a la vez (y gastaban ~3× más tráfico)
     const thumbnailBuffer = await sharp(resizedBuffer)
       .resize({
-        width: 800,
-        height: 800,
+        width: 480,
+        height: 480,
         fit: 'inside',
         withoutEnlargement: true,
       })
-      .webp({ quality: 80, effort: 3 })
+      .webp({ quality: 78, effort: 4 })
       .toBuffer()
 
     const { error: uploadError } = await supabase.storage
