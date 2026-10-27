@@ -16,7 +16,7 @@ function generateFiberParams() {
 }
 
 export default function UploadPage() {
-  const [events, setEvents] = useState<{ id: string; nombre: string }[]>([])
+  const [events, setEvents] = useState<{ id: string; nombre: string; destacado?: boolean }[]>([])
   const [selectedEvent, setSelectedEvent] = useState<string>('')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -24,7 +24,6 @@ export default function UploadPage() {
   const [status, setStatus] = useState<string>('')
   const [progress, setProgress] = useState<'idle' | 'processing' | 'uploading' | 'done' | 'error'>('idle')
   const [progressPercent, setProgressPercent] = useState<number>(0)
-  const [descriptionError, setDescriptionError] = useState<boolean>(false)
   const [honeypot, setHoneypot] = useState<string>('') // Anti-bot honeypot
   const [fiberParams, setFiberParams] = useState<ReturnType<typeof generateFiberParams> | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -43,7 +42,13 @@ export default function UploadPage() {
 
     fetch('/api/events')
       .then(res => res.json())
-      .then(data => setEvents(data))
+      .then(data => {
+        if (!Array.isArray(data)) return
+        setEvents(data)
+        // El evento destacado en moderación sale ya elegido: el asistente solo sube su foto
+        const destacado = data.find((e: { destacado?: boolean }) => e.destacado)
+        if (destacado) setSelectedEvent(current => current || destacado.id)
+      })
       .catch(err => console.error('Error al cargar eventos:', err))
 
     return () => {
@@ -104,10 +109,7 @@ export default function UploadPage() {
       return
     }
 
-    if (!file || !selectedEvent || !description.trim()) {
-      setDescriptionError(true)
-      return
-    }
+    if (!file || !selectedEvent) return
 
     setProgress('processing')
     setProgressPercent(25)
@@ -136,7 +138,6 @@ export default function UploadPage() {
         setFile(null)
         setPreview(null)
         setDescription('')
-        setDescriptionError(false)
       } else {
         setStatus(text)
         setProgress('error')
@@ -249,22 +250,13 @@ export default function UploadPage() {
                       <img src={preview} alt="Vista previa" className="max-h-96 w-full object-contain" />
                     </div>
 
-                    <div className="space-y-2">
-                      <GlassTextarea
-                        placeholder="Descripción (obligatoria)"
-                        value={description}
-                        onChange={e => {
-                          setDescription(e.target.value)
-                          setDescriptionError(false)
-                        }}
-                        rows={4}
-                        maxLength={500}
-                        className={descriptionError ? 'ring-1 ring-white/70' : ''}
-                      />
-                      {descriptionError && (
-                        <p className="pl-1 text-sm text-white/80">La descripción es obligatoria</p>
-                      )}
-                    </div>
+                    <GlassTextarea
+                      placeholder="Descripción (opcional)"
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                    />
                   </>
                 )}
 

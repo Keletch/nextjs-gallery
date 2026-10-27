@@ -274,8 +274,8 @@ export default function EventSelector({
               </p>
               <p className="mt-1 text-xs text-white/50">
                 {selectedEvent.destacado
-                  ? 'La galería abre este evento al cargar.'
-                  : 'Si ninguno está destacado, la galería muestra todos los eventos.'}
+                  ? 'La galería abre este evento al cargar y es el que sale elegido al subir fotos.'
+                  : 'Si ninguno está destacado, la galería muestra todos los eventos y al subir fotos hay que elegir evento.'}
               </p>
               {featuredStatus && <p className="mt-2 text-xs text-white/80">{featuredStatus}</p>}
             </div>

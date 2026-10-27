@@ -6,6 +6,8 @@ import dynamic from 'next/dynamic'
 import useGallerySpeed from './UseGallerySpeed'
 import FullscreenViewer from './FullscreenViewer'
 import DriftWall, { type DriftWallItem } from '@/components/DriftWall'
+import DomeGallery from '@/components/DomeGallery'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import Glass, { GlassButton, GlassSelect } from '@/components/Glass'
 import { supabaseClient } from '@/lib/supabase-client'
 
@@ -40,8 +42,12 @@ interface GalleryItem {
 // Duración del desvanecido del logo al cambiar de evento (coincide con duration-500)
 const LOGO_FADE_MS = 500
 
-type ViewMode = 'wall' | 'flight'
+type ViewMode = 'wall' | 'dome' | 'flight'
 const VIEW_MODE_KEY = 'gallery:viewMode'
+const DOME_SHUFFLE_KEY = 'gallery:domeShuffle'
+// Salida fade + blur de la vista al cambiar entre Muro, Globo y Vuelo
+const VIEW_EXIT_MS = 400
+const VIEW_LABELS: Record<ViewMode, string> = { wall: 'Muro', dome: 'Globo', flight: 'Vuelo' }
 
 function shuffle<T>(arr: T[]): T[] {
     const out = [...arr]
@@ -183,6 +189,12 @@ export default function GalleryClient() {
     const logoUrlRef = useRef('')
     const [eventosLoaded, setEventosLoaded] = useState(false)
     const [viewMode, setViewMode] = useState<ViewMode>('wall')
+    // Globo: fotos fijas o cambiando sin parar
+    const [domeShuffle, setDomeShuffle] = useState(true)
+    // Menú de vista (Muro / Globo / Vuelo): dónde se abre (null = cerrado) y si muestra el submenú del
+    // globo (Fijo / Vivo) a un lado
+    const [viewMenuAt, setViewMenuAt] = useState<{ left: number; top: number } | null>(null)
+    const [domeSubmenu, setDomeSubmenu] = useState(false)
     // Solo afecta al muro, que se renderiza en el cliente después de cargar las fotos
     const [viewportWidth, setViewportWidth] = useState(() => typeof window === 'undefined' ? 1280 : window.innerWidth)
     const [viewportHeight, setViewportHeight] = useState(() => typeof window === 'undefined' ? 800 : window.innerHeight)
@@ -221,14 +233,44 @@ export default function GalleryClient() {
         try {
             const saved = localStorage.getItem(VIEW_MODE_KEY)
             // eslint-disable-next-line react-hooks/set-state-in-effect
-            if (saved === 'wall' || saved === 'flight') setViewMode(saved)
+            if (saved === 'wall' || saved === 'dome' || saved === 'flight') setViewMode(saved)
+            if (localStorage.getItem(DOME_SHUFFLE_KEY) === 'fijo') setDomeShuffle(false)
         } catch { }
     }, [])
 
-    const changeViewMode = (next: ViewMode) => {
-        setViewMode(next)
-        try { localStorage.setItem(VIEW_MODE_KEY, next) } catch { }
+    const changeDomeShuffle = (next: boolean) => {
+        setDomeShuffle(next)
+        setViewMenuAt(null)
+        try { localStorage.setItem(DOME_SHUFFLE_KEY, next ? 'vivo' : 'fijo') } catch { }
     }
+
+    const [viewLeaving, setViewLeaving] = useState(false)
+    const viewSwapRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const toggleViewMenu = (button: HTMLElement) => {
+        if (viewMenuAt) return setViewMenuAt(null)
+        const r = button.getBoundingClientRect()
+        // Menú + submenú miden ~250 px: en pantallas angostas se corre a la izquierda para que quepan
+        setViewMenuAt({ left: Math.max(12, Math.min(r.left, window.innerWidth - 262)), top: r.bottom + 10 })
+        // El submenú del globo solo aparece al pasar sobre Globo (o tocarlo en celular)
+        setDomeSubmenu(false)
+    }
+
+    const changeViewMode = (next: ViewMode) => {
+        // Globo abre su submenú (Fijo / Vivo) y el menú sigue abierto; las otras vistas lo cierran
+        if (next === 'dome') setDomeSubmenu(true)
+        else setViewMenuAt(null)
+        if (next === viewMode && !viewSwapRef.current) return
+        try { localStorage.setItem(VIEW_MODE_KEY, next) } catch { }
+        // La vista actual sale con fade + blur y luego entra la nueva (con su propia entrada)
+        if (viewSwapRef.current) clearTimeout(viewSwapRef.current)
+        setViewLeaving(true)
+        viewSwapRef.current = setTimeout(() => {
+            viewSwapRef.current = null
+            setViewMode(next)
+            setViewLeaving(false)
+        }, VIEW_EXIT_MS)
+    }
+    useEffect(() => () => { if (viewSwapRef.current) clearTimeout(viewSwapRef.current) }, [])
 
     useEffect(() => {
         const update = () => {
@@ -360,6 +402,24 @@ export default function GalleryClient() {
     // El evento se lee de una ref para no volver a suscribirse en cada cambio de evento.
     const loadedEventRef = useRef(loadedEvent)
     useEffect(() => { loadedEventRef.current = loadedEvent }, [loadedEvent])
+
+    // Pestaña oculta (otra pestaña o ventana minimizada): todo se congela y los cambios en vivo se
+    // guardan para aplicarse al volver, así la galería no cambia de golpe a espaldas del usuario
+    const [tabHidden, setTabHidden] = useState(false)
+    const pendingLiveRef = useRef<(() => void)[]>([])
+    useEffect(() => {
+        const onVisibility = () => {
+            setTabHidden(document.hidden)
+            if (!document.hidden) {
+                const pending = pendingLiveRef.current
+                pendingLiveRef.current = []
+                pending.forEach(apply => apply())
+            }
+        }
+        document.addEventListener('visibilitychange', onVisibility)
+        return () => document.removeEventListener('visibilitychange', onVisibility)
+    }, [])
+
     useEffect(() => {
         const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
         const channel = supabaseClient
@@ -369,19 +429,23 @@ export default function GalleryClient() {
                 const shown = loadedEventRef.current
                 if (shown === null || (shown !== '' && evento !== shown)) return
                 const filename = `${imghash}.webp`
-                if (aprobada_en) {
-                    setUrls(prev => prev[filename] ? prev : {
-                        ...prev,
-                        [filename]: {
-                            thumb: `${base}/${evento}/thumbnails/thumb_${filename}`,
-                            full: `${base}/${evento}/approved/${filename}`,
-                            evento,
-                        },
-                    })
-                    setImages(prev => prev.includes(filename) ? prev : [...prev, filename])
-                } else {
-                    setImages(prev => prev.filter(f => f !== filename))
+                const apply = () => {
+                    if (aprobada_en) {
+                        setUrls(prev => prev[filename] ? prev : {
+                            ...prev,
+                            [filename]: {
+                                thumb: `${base}/${evento}/thumbnails/thumb_${filename}`,
+                                full: `${base}/${evento}/approved/${filename}`,
+                                evento,
+                            },
+                        })
+                        setImages(prev => prev.includes(filename) ? prev : [...prev, filename])
+                    } else {
+                        setImages(prev => prev.filter(f => f !== filename))
+                    }
                 }
+                if (document.hidden) pendingLiveRef.current.push(apply)
+                else apply()
             })
             .subscribe()
         return () => { supabaseClient.removeChannel(channel) }
@@ -404,6 +468,7 @@ export default function GalleryClient() {
     // Con el modal o el visor abiertos se pausa lo de atrás: su vidrio grande recalculaba refracción y
     // desenfoque en cada cuadro sobre contenido en movimiento (bajaba a ~5 fps)
     const overlayOpen = showGridModal || selectedImage !== null
+    const frozen = overlayOpen || tabHidden
 
     return (
         <>
@@ -411,7 +476,7 @@ export default function GalleryClient() {
                 <BackgroundCanvas
                     selectedEvent={selectedEvent}
                     color={eventos.find(e => e.ruta === selectedEvent)?.color}
-                    paused={overlayOpen}
+                    paused={frozen}
                 />
             </div>
 
@@ -446,28 +511,28 @@ export default function GalleryClient() {
                         </svg>
                     </GlassButton>
 
-                    {/* Control segmentado de vista */}
-                    <div role="radiogroup" aria-label="Vista" className="flex rounded-[12px] bg-black/20 p-0.5 sm:rounded-[14px] sm:p-1">
-                        {([['wall', 'Muro'], ['flight', 'Vuelo']] as const).map(([mode, label]) => (
-                            <GlassButton
-                                key={mode}
-                                role="radio"
-                                aria-checked={viewMode === mode}
-                                size="sm"
-                                radius={10}
-                                selected={viewMode === mode}
-                                onClick={() => changeViewMode(mode)}
-                                className={`!px-2.5 !py-1.5 text-xs sm:!px-3.5 sm:!py-2 sm:text-sm ${viewMode === mode ? '' : '!bg-transparent !shadow-none text-white/65'}`}
-                            >
-                                {label}
-                            </GlassButton>
-                        ))}
-                    </div>
+                    {/* Vista actual: abre el menú de vistas */}
+                    <GlassButton
+                        onClick={(e) => toggleViewMenu(e.currentTarget)}
+                        aria-haspopup="menu"
+                        aria-expanded={viewMenuAt !== null}
+                        className="!gap-1 !px-3 !py-2 text-xs sm:!gap-1.5 sm:!px-4 sm:!py-2.5 sm:text-sm"
+                    >
+                        {VIEW_LABELS[viewMode]}
+                        <ChevronDown className={`h-3.5 w-3.5 text-white/60 transition-transform duration-200 ${viewMenuAt ? 'rotate-180' : ''}`} strokeWidth={2} />
+                    </GlassButton>
 
                     <GlassButton onClick={() => router.push('/')} className="!px-3 !py-2 text-xs sm:!px-5 sm:!py-2.5 sm:text-sm">Inicio</GlassButton>
                 </Glass>
 
-                <div className="absolute inset-0 z-0">
+                {/* Sin filter cuando no hay transición: un filter permanente aplanaría y encarecería las vistas 3D */}
+                <div
+                    className="absolute inset-0 z-0"
+                    style={{
+                        transition: `opacity ${VIEW_EXIT_MS}ms ease, filter ${VIEW_EXIT_MS}ms ease`,
+                        ...(viewLeaving ? { opacity: 0, filter: 'blur(12px)' } : {}),
+                    }}
+                >
                     {viewMode === 'wall' ? (
                         wallItems.length > 0 ? (
                             <DriftWall
@@ -488,7 +553,7 @@ export default function GalleryClient() {
                                 fade={0.15}
                                 parallax={0}
                                 lift={0}
-                                paused={overlayOpen}
+                                paused={frozen}
                                 onItemClick={(item) => item.id && urls[item.id] && handleSelect(urls[item.id].full)}
                             />
                         ) : (
@@ -499,10 +564,75 @@ export default function GalleryClient() {
                                 </div>
                             )
                         )
+                    ) : viewMode === 'dome' ? (
+                        wallItems.length > 0 && (
+                            <DomeGallery
+                                items={wallItems}
+                                itemsKey={loadedEvent ?? ''}
+                                paused={frozen}
+                                shuffle={domeShuffle}
+                                onItemClick={(item) => item.id && urls[item.id] && handleSelect(urls[item.id].full)}
+                            />
+                        )
                     ) : (
-                        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={loadedEvent ?? ''} paused={overlayOpen} />
+                        <GalleryCanvas images={images} urls={urls} onSelect={handleSelect} eventId={loadedEvent ?? ''} paused={frozen} />
                     )}
                 </div>
+
+                {/* Menú de vistas. Va fuera de la barra (su vidrio recorta lo que sobresale) y se coloca bajo
+                    el botón; Globo abre a un lado su submenú Fijo / Vivo. Tocar fuera lo cierra. */}
+                {viewMenuAt && (
+                    <>
+                        <div className="fixed inset-0 z-20" onClick={() => setViewMenuAt(null)} />
+                        <div className="fixed z-20 flex items-start gap-2" style={{ left: viewMenuAt.left, top: viewMenuAt.top }}>
+                            <Glass radius={16} frost="clear" refraction={0} className="w-32 p-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div role="menu" aria-label="Vista" className="flex flex-col gap-0.5">
+                                    {(['wall', 'dome', 'flight'] as const).map(mode => (
+                                        <GlassButton
+                                            key={mode}
+                                            role="menuitemradio"
+                                            aria-checked={viewMode === mode}
+                                            size="sm"
+                                            radius={12}
+                                            selected={viewMode === mode}
+                                            onClick={() => changeViewMode(mode)}
+                                            onPointerEnter={(e) => { if (e.pointerType === 'mouse') setDomeSubmenu(mode === 'dome') }}
+                                            className={`!justify-between text-xs sm:text-sm ${viewMode === mode ? '' : '!bg-transparent !shadow-none text-white/70'}`}
+                                        >
+                                            {VIEW_LABELS[mode]}
+                                            {mode === 'dome' && <ChevronRight className="h-3.5 w-3.5 text-white/60" strokeWidth={2} />}
+                                        </GlassButton>
+                                    ))}
+                                </div>
+                            </Glass>
+
+                            {/* Submenú del globo, alineado con su fila (segunda del menú) */}
+                            {domeSubmenu && (
+                                <Glass radius={16} frost="clear" refraction={0} className="mt-[34px] w-28 p-1 sm:mt-[38px] animate-in fade-in slide-in-from-left-2 duration-200">
+                                    <div role="menu" aria-label="Fotos del globo" className="flex flex-col gap-0.5">
+                                        {([[false, 'Fijo'], [true, 'Vivo']] as const).map(([value, label]) => (
+                                            <GlassButton
+                                                key={label}
+                                                role="menuitemradio"
+                                                aria-checked={viewMode === 'dome' && domeShuffle === value}
+                                                size="sm"
+                                                radius={12}
+                                                selected={viewMode === 'dome' && domeShuffle === value}
+                                                onClick={() => {
+                                                    if (viewMode !== 'dome') changeViewMode('dome')
+                                                    changeDomeShuffle(value)
+                                                }}
+                                                className={`!justify-start text-xs sm:text-sm ${viewMode === 'dome' && domeShuffle === value ? '' : '!bg-transparent !shadow-none text-white/70'}`}
+                                            >
+                                                {label}
+                                            </GlassButton>
+                                        ))}
+                                    </div>
+                                </Glass>
+                            )}
+                        </div>
+                    </>
+                )}
 
                 {selectedImage && (
                     <FullscreenViewer hash={selectedImage} onClose={handleCloseViewer} />

@@ -364,6 +364,17 @@ const DriftWall = ({
     fadeLanes(true, targetLanes);
   }, [targetLanes, fadeLanes]);
 
+  // Los carriles se crean de a uno por cuadro: crear las ~370 fichas juntas congelaba ~250 ms el cambio
+  // de vista. La entrada (fotos ocultas hasta cargar) disimula que van apareciendo.
+  const [laneBudget, setLaneBudget] = useState(0);
+  const laneCount = columnItems.length;
+  useEffect(() => {
+    if (laneBudget >= laneCount) return;
+    const frame = requestAnimationFrame(() => setLaneBudget(b => Math.min(laneCount, b + 1)));
+    return () => cancelAnimationFrame(frame);
+  }, [laneBudget, laneCount]);
+  const lanesReady = laneBudget >= laneCount;
+
   const columnMeta = useMemo(() => {
     return columnItems.map((col, c) => {
       const u = laneUnit(c);
@@ -467,7 +478,7 @@ const DriftWall = ({
       centerOffsetRef.current += delta;
     }
     applyPlaneTransform(pointerDampedRef.current.x, pointerDampedRef.current.y);
-  }, [applyPlaneTransform, horizontal, roll, lanes, columns, containerWidth, containerHeight, tileWidth, tileHeight, gap, perspective]);
+  }, [applyPlaneTransform, horizontal, roll, lanes, columns, containerWidth, containerHeight, tileWidth, tileHeight, gap, perspective, lanesReady]);
 
   useEffect(() => {
     // En pausa no corre el loop: nada cambia detrás del vidrio y el navegador no recalcula sus filtros
@@ -776,7 +787,7 @@ const DriftWall = ({
             key={`col-${c}`}
             c={c}
             items={col}
-            copies={columnMeta[c].copies}
+            copies={c < laneBudget ? columnMeta[c].copies : 0}
             tileW={lanes ? `${tileWidth * laneScale(c)}px` : undefined}
             tileH={lanes ? `${tileHeight * laneScale(c)}px` : undefined}
             setTrackRef={setTrackRef}

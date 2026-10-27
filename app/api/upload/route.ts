@@ -62,8 +62,11 @@ export async function POST(req: NextRequest) {
     const resolution = (metadata.width ?? 0) * (metadata.height ?? 0)
     const needsResize = resolution >= MIN_RESOLUTION && sizeMB > RESIZE_THRESHOLD_MB
 
+    // .rotate() sin argumentos endereza la foto según su EXIF (las del celular vienen de lado) antes de
+    // que la conversión a webp borre ese dato
     const resizedBuffer = needsResize
       ? await sharp(buffer)
+        .rotate()
         .resize({
           width: RESIZE_TARGET,
           height: RESIZE_TARGET,
@@ -108,12 +111,14 @@ export async function POST(req: NextRequest) {
     }
 
     const originalBuffer = await sharp(resizedBuffer)
+      .rotate()
       .webp({ quality: 95, effort: 4 })
       .toBuffer()
 
     // 480 px: en el muro una foto se ve a ~180–450 px. Con 800 px el cambio de evento se trababa
     // decodificando decenas de fotos grandes a la vez (y gastaban ~3× más tráfico)
     const thumbnailBuffer = await sharp(resizedBuffer)
+      .rotate()
       .resize({
         width: 480,
         height: 480,
