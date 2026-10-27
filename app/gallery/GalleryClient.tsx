@@ -7,7 +7,7 @@ import useGallerySpeed from './UseGallerySpeed'
 import FullscreenViewer from './FullscreenViewer'
 import DriftWall, { type DriftWallItem } from '@/components/DriftWall'
 import DomeGallery from '@/components/DomeGallery'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, House, ImagePlus } from 'lucide-react'
 import Glass, { GlassButton, GlassSelect } from '@/components/Glass'
 import { supabaseClient } from '@/lib/supabase-client'
 
@@ -172,7 +172,7 @@ function wallLayout(width: number, height: number, composition: WallComposition)
     return { lanes, tileWidth, tileHeight, gap }
 }
 
-export default function GalleryClient() {
+export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: ViewMode }) {
     const [eventos, setEventos] = useState<Evento[]>([])
     const [selectedEvent, setSelectedEvent] = useState<string>('')
     const [images, setImages] = useState<string[]>([])
@@ -188,7 +188,8 @@ export default function GalleryClient() {
     const [isLogoTransitioning, setIsLogoTransitioning] = useState(true)
     const logoUrlRef = useRef('')
     const [eventosLoaded, setEventosLoaded] = useState(false)
-    const [viewMode, setViewMode] = useState<ViewMode>('wall')
+    // Arranca en la vista que eligió el moderador (ver app/moderate/DefaultViewPanel)
+    const [viewMode, setViewMode] = useState<ViewMode>(defaultView)
     // Globo: fotos fijas o cambiando sin parar
     const [domeShuffle, setDomeShuffle] = useState(true)
     // Menú de vista (Muro / Globo / Vuelo): dónde se abre (null = cerrado) y si muestra el submenú del
@@ -228,10 +229,11 @@ export default function GalleryClient() {
         setSelectedImage(null)
     }
 
-    // Recordar el modo elegido (solo en este navegador)
+    // Recordar el modo elegido solo durante la visita (sessionStorage): en una visita nueva la galería
+    // vuelve a abrir en la vista que eligió el moderador
     useEffect(() => {
         try {
-            const saved = localStorage.getItem(VIEW_MODE_KEY)
+            const saved = sessionStorage.getItem(VIEW_MODE_KEY)
             // eslint-disable-next-line react-hooks/set-state-in-effect
             if (saved === 'wall' || saved === 'dome' || saved === 'flight') setViewMode(saved)
             if (localStorage.getItem(DOME_SHUFFLE_KEY) === 'fijo') setDomeShuffle(false)
@@ -260,7 +262,7 @@ export default function GalleryClient() {
         if (next === 'dome') setDomeSubmenu(true)
         else setViewMenuAt(null)
         if (next === viewMode && !viewSwapRef.current) return
-        try { localStorage.setItem(VIEW_MODE_KEY, next) } catch { }
+        try { sessionStorage.setItem(VIEW_MODE_KEY, next) } catch { }
         // La vista actual sale con fade + blur y luego entra la nueva (con su propia entrada)
         if (viewSwapRef.current) clearTimeout(viewSwapRef.current)
         setViewLeaving(true)
@@ -522,7 +524,23 @@ export default function GalleryClient() {
                         <ChevronDown className={`h-3.5 w-3.5 text-white/60 transition-transform duration-200 ${viewMenuAt ? 'rotate-180' : ''}`} strokeWidth={2} />
                     </GlassButton>
 
-                    <GlassButton onClick={() => router.push('/')} className="!px-3 !py-2 text-xs sm:!px-5 sm:!py-2.5 sm:text-sm">Inicio</GlassButton>
+                    {/* Subir foto e inicio solo con ícono, para que la barra no crezca */}
+                    <GlassButton
+                        onClick={() => router.push('/upload')}
+                        aria-label="Subir foto"
+                        title="Subir foto"
+                        className="h-9 w-9 !p-0 sm:h-[46px] sm:w-[46px]"
+                    >
+                        <ImagePlus className="h-5 w-5" strokeWidth={1.6} />
+                    </GlassButton>
+                    <GlassButton
+                        onClick={() => router.push('/')}
+                        aria-label="Inicio"
+                        title="Inicio"
+                        className="h-9 w-9 !p-0 sm:h-[46px] sm:w-[46px]"
+                    >
+                        <House className="h-5 w-5" strokeWidth={1.6} />
+                    </GlassButton>
                 </Glass>
 
                 {/* Sin filter cuando no hay transición: un filter permanente aplanaría y encarecería las vistas 3D */}

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AuthGate from './AuthGate'
 import EventSelector from './EventSelector'
+import DefaultViewPanel from './DefaultViewPanel'
 import FolderSelector from './FolderSelector'
 import ModerationPanel from './ModerationPanel'
 import LogsPanel from './LogsPanel'
@@ -9,7 +10,8 @@ import CreateEventPanel from './CreateEventPanel'
 import { useModeration } from './UseModeration'
 import GhostFibers from '@/components/GhostFibers'
 import { randomColors, randomFiberParams } from '@/lib/background'
-import Glass from '@/components/Glass'
+import Glass, { GlassButton } from '@/components/Glass'
+import { House, Images } from 'lucide-react'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 
@@ -119,15 +121,28 @@ export default function ModeratePage() {
 
         {/* Content */}
         <div className="relative z-50 w-full max-w-7xl mx-auto pb-8">
-          <h1 className="mb-8 text-4xl font-semibold tracking-tight text-white">
-            Panel de moderación
-          </h1>
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <h1 className="text-4xl font-semibold tracking-tight text-white">
+              Panel de moderación
+            </h1>
+            {/* Galería e inicio en otra pestaña, para no salir del panel */}
+            <div className="flex shrink-0 gap-2">
+              <GlassButton as="a" href="/gallery" target="_blank" rel="noopener" aria-label="Ver galería (pestaña nueva)" title="Ver galería" className="h-11 w-11 !p-0">
+                <Images className="h-5 w-5" strokeWidth={1.6} />
+              </GlassButton>
+              <GlassButton as="a" href="/" target="_blank" rel="noopener" aria-label="Inicio (pestaña nueva)" title="Inicio" className="h-11 w-11 !p-0">
+                <House className="h-5 w-5" strokeWidth={1.6} />
+              </GlassButton>
+            </div>
+          </div>
 
           <CreateEventPanel onCreated={(ruta) => setEvento(ruta)} />
 
           <Glass radius={28} frost="heavy" className="mb-6 p-6">
             <EventSelector selected={evento} onChange={setEvento} />
           </Glass>
+
+          <DefaultViewPanel />
 
           <FolderSelector selected={folder} onChange={setFolder} />
 

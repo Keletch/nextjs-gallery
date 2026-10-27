@@ -42,6 +42,8 @@ const MAX_FLING_PX = 3000;
 // Al abrir una foto el globo no se congela de golpe: sigue frenando un momento detrás del visor
 const COAST_MS = 900;
 const COAST_TAU = 0.3;
+// Mientras hay movimiento vertical, solo se recolocan las fichas a menos de esto del frente
+const FRONT_MOVE_DEG = 115;
 // Modo vivo: cuántos caminantes cambian fotos a la vez, cada cuánto dan un paso, y cuánto dura el
 // fundido (ver DomeGallery.css)
 const WALKERS = 4;
@@ -125,6 +127,9 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
 
   // Estado del movimiento en refs: se actualiza en cada cuadro sin pasar por React
   const spinRef = useRef(0);
+  // Hay que recolocar fichas (cambió el desplazamiento vertical) / quedaron sin recolocar las de atrás
+  const tilesDirtyRef = useRef(false);
+  const backStaleRef = useRef(false);
   const shiftRef = useRef(0);
   const velRef = useRef({ x: 0, y: 0 });
   const autoDirRef = useRef(1);
@@ -139,12 +144,17 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
     visibleRef.current = visible;
   }, [visible]);
 
-  const placeTiles = useCallback(() => {
+  // onlyFront: durante un movimiento vertical solo se recolocan las fichas de la mitad de enfrente
+  // (con margen para las que van entrando al girar); las de atrás no se ven y se ponen al día en una
+  // pasada completa cuando el movimiento termina. Recolocar las ~330 fichas en cada evento del mouse
+  // (a veces dos por cuadro) bajaba el arrastre vertical a ~48 fps.
+  const placeTiles = useCallback((onlyFront = false) => {
     if (!layout) return;
     const shift = shiftRef.current;
     layout.tiles.forEach((tile, i) => {
       const el = tileRefs.current[i];
       if (!el) return;
+      if (onlyFront && Math.abs(((((tile.lon + spinRef.current) % 360) + 540) % 360) - 180) > FRONT_MOVE_DEG) return;
       const lat = wrapLat(tile.lat + shift, layout.band);
       // Más chica hacia los polos para que no se encimen (la circunferencia de la fila se achica)
       const k = Math.max(0.2, Math.cos((lat * Math.PI) / 180));
@@ -194,8 +204,17 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
         applySpin();
         if (vel.y !== 0) {
           shiftRef.current = wrapLat(shiftRef.current + vel.y * dt, layout.band);
-          placeTiles();
+          tilesDirtyRef.current = true;
         }
+      }
+      // Fichas: a lo más una vez por cuadro; solo el frente mientras se mueve, todas al terminar
+      if (tilesDirtyRef.current) {
+        tilesDirtyRef.current = false;
+        placeTiles(true);
+        backStaleRef.current = true;
+      } else if (backStaleRef.current && velRef.current.y === 0 && !dragRef.current?.moved) {
+        backStaleRef.current = false;
+        placeTiles();
       }
       if (paused && now - pausedAt > COAST_MS) return;
       frame = requestAnimationFrame(tick);
@@ -231,7 +250,7 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
     spinRef.current = (spinRef.current + dx * degPerPx) % 360;
     if (layout) shiftRef.current = wrapLat(shiftRef.current - dy * degPerPx, layout.band);
     applySpin();
-    placeTiles();
+    if (dy !== 0) tilesDirtyRef.current = true;
   };
   const endDrag = (e: React.PointerEvent) => {
     const drag = dragRef.current;

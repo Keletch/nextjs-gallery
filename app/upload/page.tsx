@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useRouter } from 'next/navigation'
+import { House, Images } from 'lucide-react'
 import GhostFibers from '@/components/GhostFibers'
 import { randomColors, randomFiberParams } from '@/lib/background'
 import Glass, { GlassButton, GlassSelect, GlassTextarea } from '@/components/Glass'
@@ -162,13 +163,15 @@ export default function UploadPage() {
         <GhostFibers {...fiberParams} />
       </div>
 
-      {/* Back button */}
-      <GlassButton onClick={() => router.push('/gallery')} className="!fixed left-4 top-4 z-[10000]">
-        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M12.5 5l-5 5 5 5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        Galería
-      </GlassButton>
+      {/* Ir a la galería o al inicio, solo con ícono */}
+      <div className="fixed left-4 top-4 z-[10000] flex gap-2">
+        <GlassButton onClick={() => router.push('/gallery')} aria-label="Ver galería" title="Ver galería" className="h-11 w-11 !p-0">
+          <Images className="h-5 w-5" strokeWidth={1.6} />
+        </GlassButton>
+        <GlassButton onClick={() => router.push('/')} aria-label="Inicio" title="Inicio" className="h-11 w-11 !p-0">
+          <House className="h-5 w-5" strokeWidth={1.6} />
+        </GlassButton>
+      </div>
 
       {/* Content */}
       <div className={`relative z-50 flex min-h-screen items-center justify-center px-4 py-20 transition-all duration-1000 ease-out ${showContent ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-sm'}`}>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ArrowUp } from 'lucide-react'
 import GhostFibers from '@/components/GhostFibers'
 import Glass from '@/components/Glass'
 import ImageTrail from '@/components/ImageTrail'
@@ -107,37 +106,25 @@ export default function Home() {
                         </p>
                     </header>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Botones chicos con vidrio que refracta de verdad: por su tamaño el filtro es barato */}
+                    <div className="flex justify-center gap-3">
                         <Glass
                             as={Link}
                             href="/gallery"
-                            radius={30}
-                            frost="regular"
-                            className="group block p-7 transition-[transform,background-color] duration-300 hover:bg-white/[0.09] active:scale-[0.99] sm:p-8"
+                            radius={999}
+                            frost="clear"
+                            className="px-6 py-3 text-base font-medium tracking-tight transition-[transform,background-color] duration-300 hover:bg-white/[0.12] active:scale-[0.97] sm:px-7"
                         >
-                            <div className="flex items-start justify-between gap-6">
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-semibold tracking-tight">Ver galería</h2>
-                                    <p className="text-sm text-white/65">Explora las fotos de cada evento</p>
-                                </div>
-                                <ArrowRight className="mt-1 h-6 w-6 shrink-0 text-white/60 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-white" strokeWidth={1.6} />
-                            </div>
+                            Ver galería
                         </Glass>
-
                         <Glass
                             as={Link}
                             href="/upload"
-                            radius={30}
-                            frost="regular"
-                            className="group block p-7 transition-[transform,background-color] duration-300 hover:bg-white/[0.09] active:scale-[0.99] sm:p-8"
+                            radius={999}
+                            frost="clear"
+                            className="px-6 py-3 text-base font-medium tracking-tight transition-[transform,background-color] duration-300 hover:bg-white/[0.12] active:scale-[0.97] sm:px-7"
                         >
-                            <div className="flex items-start justify-between gap-6">
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-semibold tracking-tight">Subir foto</h2>
-                                    <p className="text-sm text-white/65">Comparte tus momentos con la comunidad</p>
-                                </div>
-                                <ArrowUp className="mt-1 h-6 w-6 shrink-0 text-white/60 transition-transform duration-300 group-hover:-translate-y-1 group-hover:text-white" strokeWidth={1.6} />
-                            </div>
+                            Subir foto
                         </Glass>
                     </div>
                 </div>

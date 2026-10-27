@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { supabaseServer } from '@/lib/supabase-server'
 import GalleryClient from './GalleryClient'
+import { getDefaultView } from '@/lib/default-view'
 
 // Forzar dynamic rendering para metadata
 export const dynamic = 'force-dynamic'
@@ -86,6 +87,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 }
 
-export default function GalleryPage() {
-  return <GalleryClient />
+// La vista inicial se lee en el servidor: así la galería abre directo en ella, sin cambiar al cargar
+export default async function GalleryPage() {
+  return <GalleryClient defaultView={await getDefaultView()} />
 }
