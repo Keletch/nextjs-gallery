@@ -2,13 +2,12 @@
 import { useEffect, useState } from 'react'
 import { supabaseClient } from '../../lib/supabase-client'
 import type { Session } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
+import { House, Images, LogOut } from 'lucide-react'
 import Glass, { GlassButton } from '@/components/Glass'
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [isModerator, setIsModerator] = useState<boolean | null>(null)
-  const router = useRouter()
 
   useEffect(() => {
     const getSession = async () => {
@@ -85,21 +84,27 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   return (
     <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide">
-      {/* Top bar */}
+      {/* Barra superior solo con íconos: galería e inicio en otra pestaña (para no salir del panel)
+          y cerrar sesión */}
       <Glass radius={22} frost="clear" className="!fixed right-4 top-4 z-[10000] flex gap-1.5 p-1.5">
-        <GlassButton size="sm" radius={16} onClick={() => router.push('/gallery')}>
-          Ir a galería
+        <GlassButton as="a" href="/gallery" target="_blank" rel="noopener" radius={16} aria-label="Ver galería (pestaña nueva)" title="Ver galería" className="h-10 w-10 !p-0">
+          <Images className="h-5 w-5" strokeWidth={1.6} />
+        </GlassButton>
+        <GlassButton as="a" href="/" target="_blank" rel="noopener" radius={16} aria-label="Inicio (pestaña nueva)" title="Inicio" className="h-10 w-10 !p-0">
+          <House className="h-5 w-5" strokeWidth={1.6} />
         </GlassButton>
         <GlassButton
-          size="sm"
           radius={16}
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          className="h-10 w-10 !p-0"
           onClick={async () => {
             if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
               await handleLogout()
             }
           }}
         >
-          Cerrar sesión
+          <LogOut className="h-5 w-5" strokeWidth={1.6} />
         </GlassButton>
       </Glass>
 

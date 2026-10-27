@@ -10,8 +10,7 @@ import CreateEventPanel from './CreateEventPanel'
 import { useModeration } from './UseModeration'
 import GhostFibers from '@/components/GhostFibers'
 import { randomColors, randomFiberParams } from '@/lib/background'
-import Glass, { GlassButton } from '@/components/Glass'
-import { House, Images } from 'lucide-react'
+import Glass from '@/components/Glass'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 
@@ -121,20 +120,9 @@ export default function ModeratePage() {
 
         {/* Content */}
         <div className="relative z-50 w-full max-w-7xl mx-auto pb-8">
-          <div className="mb-8 flex items-center justify-between gap-4">
-            <h1 className="text-4xl font-semibold tracking-tight text-white">
-              Panel de moderación
-            </h1>
-            {/* Galería e inicio en otra pestaña, para no salir del panel */}
-            <div className="flex shrink-0 gap-2">
-              <GlassButton as="a" href="/gallery" target="_blank" rel="noopener" aria-label="Ver galería (pestaña nueva)" title="Ver galería" className="h-11 w-11 !p-0">
-                <Images className="h-5 w-5" strokeWidth={1.6} />
-              </GlassButton>
-              <GlassButton as="a" href="/" target="_blank" rel="noopener" aria-label="Inicio (pestaña nueva)" title="Inicio" className="h-11 w-11 !p-0">
-                <House className="h-5 w-5" strokeWidth={1.6} />
-              </GlassButton>
-            </div>
-          </div>
+          <h1 className="mb-8 text-4xl font-semibold tracking-tight text-white">
+            Panel de moderación
+          </h1>
 
           <CreateEventPanel onCreated={(ruta) => setEvento(ruta)} />
 
