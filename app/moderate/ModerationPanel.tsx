@@ -1,7 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import ModeratorImageViewer from './ModeratorImageViewer'
 import Glass, { GlassButton } from '@/components/Glass'
+
+// Fotos por página: múltiplo de 2, 3 y 4 para que las filas de la cuadrícula queden completas
+const PAGE_SIZE = 24
 
 export default function ModerationPanel({
   folder,
@@ -26,6 +29,25 @@ export default function ModerationPanel({
   // misma ruta). Antes era Date.now() en cada render: cada hover volvía a descargar todas las fotos.
   const [version, setVersion] = useState(() => Date.now())
 
+  // Página actual por evento y carpeta: al cambiar de una a otra vuelve a la primera. Si la última
+  // página se vacía (p. ej. al aprobar sus fotos) se queda en la que sí existe.
+  const sectionKey = `${evento}/${folder}`
+  const [paging, setPaging] = useState({ key: sectionKey, page: 0 })
+  const totalPages = Math.max(1, Math.ceil(images.length / PAGE_SIZE))
+  const page = Math.min(paging.key === sectionKey ? paging.page : 0, totalPages - 1)
+  const pageImages = images.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const gridRef = useRef<HTMLDivElement>(null)
+  const goToPage = (next: number) => {
+    setPaging({ key: sectionKey, page: next })
+    gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const chevron = (d: string) => (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d={d} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+
   const handleCloseViewer = () => {
     setSelectedImage(null)
   }
@@ -45,8 +67,8 @@ export default function ModerationPanel({
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {images.map((filename) => {
+      <div ref={gridRef} className="grid scroll-mt-24 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {pageImages.map((filename) => {
           const entry = urls[filename]
           if (!entry?.thumb || !entry?.original) return null
 
@@ -88,6 +110,21 @@ export default function ModerationPanel({
           )
         })}
       </div>
+
+      {totalPages > 1 && (
+        <Glass radius={999} frost="regular" className="mx-auto mt-6 flex w-fit items-center gap-2 px-2 py-2">
+          <GlassButton onClick={() => goToPage(page - 1)} disabled={page === 0} aria-label="Página anterior" radius={999} className="h-9 w-9 !p-0">
+            {chevron('M12.5 5l-5 5 5 5')}
+          </GlassButton>
+          <div className="px-3 text-sm font-medium tabular-nums">
+            {page + 1} / {totalPages}
+            <span className="ml-2 text-white/50">· {images.length} fotos</span>
+          </div>
+          <GlassButton onClick={() => goToPage(page + 1)} disabled={page === totalPages - 1} aria-label="Página siguiente" radius={999} className="h-9 w-9 !p-0">
+            {chevron('M7.5 5l5 5-5 5')}
+          </GlassButton>
+        </Glass>
+      )}
 
       {selectedImage && (
         <ModeratorImageViewer
