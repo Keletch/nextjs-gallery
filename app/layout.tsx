@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
@@ -26,6 +26,16 @@ const geistMono = Geist_Mono({
     subsets: ["latin"],
     display: 'swap',
     preload: true,
+})
+
+// Serif itálica de títulos (el "Galería" del inicio). Sin preload: solo se descarga en la página que la usa
+const playfair = Playfair_Display({
+    variable: "--font-display",
+    subsets: ["latin"],
+    weight: "500",
+    style: "italic",
+    display: 'swap',
+    preload: false,
 })
 
 // Metadata completa para SEO
@@ -107,7 +117,7 @@ export default function RootLayout({
                 <link rel="preconnect" href="https://sinpfcbinaiasorunmpz.supabase.co" />
                 <link rel="dns-prefetch" href="https://sinpfcbinaiasorunmpz.supabase.co" />
             </head>
-            <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            <body className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}>
                 {children}
                 <Analytics />
                 <SpeedInsights />

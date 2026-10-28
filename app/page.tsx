@@ -92,14 +92,14 @@ export default function Home() {
             <div className={`relative z-20 flex min-h-screen items-center justify-center px-4 transition-all duration-1000 ease-out sm:px-6 ${showContent ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-sm'}`}>
                 <div className="flex w-full max-w-3xl flex-col gap-8 py-12 sm:gap-10 sm:py-16">
 
-                    <header className="space-y-4 text-center">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/club-logo.png" alt="Club de Inversionistas" width={240} height={126} className="mx-auto mb-6 h-auto w-28 sm:w-32" />
-                        <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-6xl md:text-7xl">
-                            Galería CDI
+                    <header className="space-y-3 text-center">
+                        {/* Una sola palabra: serif itálica grande, en vez de la sans en negrita de antes */}
+                        <h1 className="font-[family-name:var(--font-display)] text-7xl font-medium italic leading-none tracking-[-0.01em] text-white sm:text-8xl md:text-9xl">
+                            Galería
                         </h1>
-                        <p className="text-lg text-white/75 sm:text-xl">
-                            Galería oficial del Club de Inversionistas
+                        {/* El logo de arriba ya dice "Club de Inversionistas": aquí no se repite */}
+                        <p className="text-xs uppercase tracking-[0.35em] text-white/60 sm:text-sm">
+                            Colección oficial de eventos
                         </p>
                         <p className="text-sm text-white/55 tabular-nums">
                             {`${shown.fotos.toLocaleString('es-MX')} fotos de ${shown.eventos} eventos`}
@@ -127,6 +127,10 @@ export default function Home() {
                             Subir foto
                         </Glass>
                     </div>
+
+                    {/* El club firma abajo, debajo de los botones */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/club-logo.png" alt="Club de Inversionistas" width={240} height={126} className="mx-auto h-auto w-24 opacity-90 sm:w-28" />
                 </div>
 
                 <p className="absolute inset-x-0 bottom-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-xs text-white/45 sm:text-sm">
