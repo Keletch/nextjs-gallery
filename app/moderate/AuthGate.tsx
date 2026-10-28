@@ -86,15 +86,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     <main className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden bg-black scrollbar-hide">
       {/* Barra superior solo con íconos: galería e inicio en otra pestaña (para no salir del panel)
           y cerrar sesión */}
-      <Glass radius={22} frost="clear" className="!fixed right-4 top-4 z-[10000] flex gap-1.5 p-1.5">
-        <GlassButton as="a" href="/gallery" target="_blank" rel="noopener" radius={16} aria-label="Ver galería (pestaña nueva)" title="Ver galería" className="h-10 w-10 !p-0">
+      <Glass radius={999} frost="clear" className="!fixed right-4 top-4 z-[10000] flex gap-1.5 p-1.5">
+        <GlassButton as="a" href="/gallery" target="_blank" rel="noopener" aria-label="Ver galería (pestaña nueva)" title="Ver galería" className="h-10 w-10 !p-0">
           <Images className="h-5 w-5" strokeWidth={1.6} />
         </GlassButton>
-        <GlassButton as="a" href="/" target="_blank" rel="noopener" radius={16} aria-label="Inicio (pestaña nueva)" title="Inicio" className="h-10 w-10 !p-0">
+        <GlassButton as="a" href="/" target="_blank" rel="noopener" aria-label="Inicio (pestaña nueva)" title="Inicio" className="h-10 w-10 !p-0">
           <House className="h-5 w-5" strokeWidth={1.6} />
         </GlassButton>
         <GlassButton
-          radius={16}
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
           className="h-10 w-10 !p-0"

@@ -98,7 +98,6 @@ export default function ModerationPanel({
                     key={action.label}
                     onClick={() => action.handler(filename)}
                     size="sm"
-                    radius={13}
                     refraction={0}
                     className="w-full"
                   >
@@ -112,15 +111,15 @@ export default function ModerationPanel({
       </div>
 
       {totalPages > 1 && (
-        <Glass radius={999} frost="regular" className="mx-auto mt-6 flex w-fit items-center gap-2 px-2 py-2">
-          <GlassButton onClick={() => goToPage(page - 1)} disabled={page === 0} aria-label="Página anterior" radius={999} className="h-9 w-9 !p-0">
+        <Glass frost="regular" className="mx-auto mt-6 flex w-fit items-center gap-2 px-2 py-2">
+          <GlassButton onClick={() => goToPage(page - 1)} disabled={page === 0} aria-label="Página anterior" className="h-9 w-9 !p-0">
             {chevron('M12.5 5l-5 5 5 5')}
           </GlassButton>
           <div className="px-3 text-sm font-medium tabular-nums">
             {page + 1} / {totalPages}
             <span className="ml-2 text-white/50">· {images.length} fotos</span>
           </div>
-          <GlassButton onClick={() => goToPage(page + 1)} disabled={page === totalPages - 1} aria-label="Página siguiente" radius={999} className="h-9 w-9 !p-0">
+          <GlassButton onClick={() => goToPage(page + 1)} disabled={page === totalPages - 1} aria-label="Página siguiente" className="h-9 w-9 !p-0">
             {chevron('M7.5 5l5 5-5 5')}
           </GlassButton>
         </Glass>

@@ -14,20 +14,18 @@ export default function LogsPanel({
     <Glass radius={28} frost="heavy" className="p-6">
       <h3 className="mb-6 text-2xl font-semibold tracking-tight">Historial de logs</h3>
 
-      <div className="mb-6 inline-flex gap-1 rounded-[18px] bg-black/20 p-1.5">
+      <div className="mb-6 inline-flex gap-1 rounded-full bg-black/20 p-1.5">
         <GlassButton
           onClick={() => setLogView('moderation')}
-          radius={14}
           selected={logView === 'moderation'}
-          className={logView === 'moderation' ? '' : '!bg-transparent !shadow-none text-white/60 hover:text-white'}
+          className={logView === 'moderation' ? '' : '!bg-transparent !shadow-none !outline-transparent text-white/60 hover:text-white'}
         >
           Moderación
         </GlassButton>
         <GlassButton
           onClick={() => setLogView('uploads')}
-          radius={14}
           selected={logView === 'uploads'}
-          className={logView === 'uploads' ? '' : '!bg-transparent !shadow-none text-white/60 hover:text-white'}
+          className={logView === 'uploads' ? '' : '!bg-transparent !shadow-none !outline-transparent text-white/60 hover:text-white'}
         >
           Subidas
         </GlassButton>

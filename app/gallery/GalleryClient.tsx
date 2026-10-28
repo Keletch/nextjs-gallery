@@ -172,9 +172,10 @@ function wallLayout(width: number, height: number, composition: WallComposition)
     return { lanes, tileWidth, tileHeight, gap }
 }
 
-export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: ViewMode }) {
-    const [eventos, setEventos] = useState<Evento[]>([])
-    const [selectedEvent, setSelectedEvent] = useState<string>('')
+export default function GalleryClient({ defaultView = 'wall', eventos }: { defaultView?: ViewMode; eventos: Evento[] }) {
+    // Eventos y evento destacado llegan del servidor: el selector arranca ya en el destacado (antes se
+    // pedían en el navegador y se veía "Todos los eventos" y luego cambiaba). Sin destacado: todos
+    const [selectedEvent, setSelectedEvent] = useState<string>(() => eventos.find(e => e.destacado)?.ruta ?? '')
     const [images, setImages] = useState<string[]>([])
     const [urls, setUrls] = useState<Record<string, { thumb: string; full: string; evento: string }>>({})
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -187,7 +188,6 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
     const [logoUrl, setLogoUrl] = useState<string>('')
     const [isLogoTransitioning, setIsLogoTransitioning] = useState(true)
     const logoUrlRef = useRef('')
-    const [eventosLoaded, setEventosLoaded] = useState(false)
     // Arranca en la vista que eligió el moderador (ver app/moderate/DefaultViewPanel)
     const [viewMode, setViewMode] = useState<ViewMode>(defaultView)
     // Globo: fotos fijas o cambiando sin parar
@@ -284,26 +284,6 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
     }, [])
 
     useEffect(() => {
-        const fetchEventos = async () => {
-            try {
-                const res = await fetch('/api/public-events')
-                const data: Evento[] = await res.json()
-                setEventos(Array.isArray(data) ? data : [])
-
-                // Abrir el evento destacado por moderación; si no hay, se queda en "Todos los eventos"
-                const destacado = Array.isArray(data) ? data.find(e => e.destacado) : undefined
-                if (destacado) setSelectedEvent(destacado.ruta)
-            } finally {
-                setEventosLoaded(true)
-            }
-        }
-        fetchEventos()
-    }, [])
-
-    useEffect(() => {
-        // Esperar a saber si hay evento destacado para no cargar "Todos" y luego cambiar
-        if (!eventosLoaded) return
-
         const fetchGallery = async () => {
             const url = selectedEvent
                 ? `/api/gallery-index?evento=${selectedEvent}`
@@ -346,13 +326,12 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
         }
 
         fetchGallery()
-    }, [selectedEvent, eventosLoaded])
+    }, [selectedEvent])
 
     // Cambio de logo al cambiar de evento: se desvanece el actual mientras el nuevo se descarga y
     // decodifica; recién con el nuevo listo se cambia y aparece (antes se cambiaba antes de cargar
     // y se veía el logo viejo nítido y luego el nuevo de golpe)
     useEffect(() => {
-        if (!eventosLoaded) return
         let newLogoUrl = '/cdiLogo.png'
         if (selectedEvent) {
             const evento = eventos.find(e => e.ruta === selectedEvent)
@@ -398,7 +377,7 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
         return () => {
             cancelled = true
         }
-    }, [selectedEvent, eventos, eventosLoaded])
+    }, [selectedEvent, eventos])
 
     // Fotos en vivo: al aprobarse una foto (aprobada_en) aparece sin recargar; si se rechaza, se quita.
     // El evento se lee de una ref para no volver a suscribirse en cada cambio de evento.
@@ -483,12 +462,14 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
             </div>
 
             <div className="relative h-[100dvh] w-full overflow-hidden bg-transparent text-white z-0" style={{ transform: 'translate3d(0,0,0)' }}>
-                {/* Barra flotante de vidrio */}
-                <Glass radius={26} frost="clear" refraction={36} className="absolute left-3 right-3 top-3 z-10 flex flex-wrap items-center gap-1.5 p-1.5 sm:left-6 sm:right-auto sm:top-6 sm:gap-2 sm:p-2">
+                {/* Barra flotante de vidrio. Barra y controles en píldora: con el mismo margen interno quedan
+                    concéntricos (radio de afuera = radio de adentro + margen) */}
+                <Glass radius={999} frost="clear" refraction={36} className="absolute left-3 right-3 top-3 z-10 flex flex-wrap items-center gap-1.5 p-1.5 sm:left-6 sm:right-auto sm:top-6 sm:gap-2 sm:p-2">
                     <GlassSelect
+                        frost="clear"
                         value={selectedEvent}
                         onChange={(e) => setSelectedEvent(e.target.value)}
-                        className="min-w-0 flex-1 text-xs sm:min-w-[190px] sm:flex-none sm:text-sm [&>select]:py-2 [&>select]:pl-3 [&>select]:pr-8 sm:[&>select]:py-3 sm:[&>select]:pl-4 sm:[&>select]:pr-10"
+                        className="h-9 min-w-0 flex-1 text-xs sm:h-[46px] sm:min-w-[190px] sm:flex-none sm:text-sm [&>select]:h-full [&>select]:py-0 [&>select]:pl-4 [&>select]:pr-8 sm:[&>select]:pl-5 sm:[&>select]:pr-10"
                     >
                         <option value="">Todos los eventos</option>
                         {eventos.map((ev) => (
@@ -518,7 +499,7 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
                         onClick={(e) => toggleViewMenu(e.currentTarget)}
                         aria-haspopup="menu"
                         aria-expanded={viewMenuAt !== null}
-                        className="!gap-1 !px-3 !py-2 text-xs sm:!gap-1.5 sm:!px-4 sm:!py-2.5 sm:text-sm"
+                        className="h-9 !gap-1 !px-3 !py-0 text-xs sm:h-[46px] sm:!gap-1.5 sm:!px-4 sm:text-sm"
                     >
                         {VIEW_LABELS[viewMode]}
                         <ChevronDown className={`h-3.5 w-3.5 text-white/60 transition-transform duration-200 ${viewMenuAt ? 'rotate-180' : ''}`} strokeWidth={2} />
@@ -603,7 +584,7 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
                     <>
                         <div className="fixed inset-0 z-20" onClick={() => setViewMenuAt(null)} />
                         <div className="fixed z-20 flex items-start gap-2" style={{ left: viewMenuAt.left, top: viewMenuAt.top }}>
-                            <Glass radius={16} frost="clear" refraction={0} className="w-32 p-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <Glass radius={22} frost="clear" refraction={0} className="w-32 p-1 animate-in fade-in slide-in-from-top-2 duration-200">
                                 <div role="menu" aria-label="Vista" className="flex flex-col gap-0.5">
                                     {(['wall', 'dome', 'flight'] as const).map(mode => (
                                         <GlassButton
@@ -611,11 +592,10 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
                                             role="menuitemradio"
                                             aria-checked={viewMode === mode}
                                             size="sm"
-                                            radius={12}
                                             selected={viewMode === mode}
                                             onClick={() => changeViewMode(mode)}
                                             onPointerEnter={(e) => { if (e.pointerType === 'mouse') setDomeSubmenu(mode === 'dome') }}
-                                            className={`!justify-between text-xs sm:text-sm ${viewMode === mode ? '' : '!bg-transparent !shadow-none text-white/70'}`}
+                                            className={`!justify-between text-xs sm:text-sm ${viewMode === mode ? '' : '!bg-transparent !shadow-none !outline-transparent text-white/70'}`}
                                         >
                                             {VIEW_LABELS[mode]}
                                             {mode === 'dome' && <ChevronRight className="h-3.5 w-3.5 text-white/60" strokeWidth={2} />}
@@ -626,7 +606,7 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
 
                             {/* Submenú del globo, alineado con su fila (segunda del menú) */}
                             {domeSubmenu && (
-                                <Glass radius={16} frost="clear" refraction={0} className="mt-[34px] w-28 p-1 sm:mt-[38px] animate-in fade-in slide-in-from-left-2 duration-200">
+                                <Glass radius={22} frost="clear" refraction={0} className="mt-[34px] w-28 p-1 sm:mt-[38px] animate-in fade-in slide-in-from-left-2 duration-200">
                                     <div role="menu" aria-label="Fotos del globo" className="flex flex-col gap-0.5">
                                         {([[false, 'Fijo'], [true, 'Vivo']] as const).map(([value, label]) => (
                                             <GlassButton
@@ -634,13 +614,12 @@ export default function GalleryClient({ defaultView = 'wall' }: { defaultView?: 
                                                 role="menuitemradio"
                                                 aria-checked={viewMode === 'dome' && domeShuffle === value}
                                                 size="sm"
-                                                radius={12}
                                                 selected={viewMode === 'dome' && domeShuffle === value}
                                                 onClick={() => {
                                                     if (viewMode !== 'dome') changeViewMode('dome')
                                                     changeDomeShuffle(value)
                                                 }}
-                                                className={`!justify-start text-xs sm:text-sm ${viewMode === 'dome' && domeShuffle === value ? '' : '!bg-transparent !shadow-none text-white/70'}`}
+                                                className={`!justify-start text-xs sm:text-sm ${viewMode === 'dome' && domeShuffle === value ? '' : '!bg-transparent !shadow-none !outline-transparent text-white/70'}`}
                                             >
                                                 {label}
                                             </GlassButton>

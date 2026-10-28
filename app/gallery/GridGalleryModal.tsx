@@ -180,7 +180,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
               ))}
             </GlassSelect>
 
-            <GlassButton onClick={onClose} aria-label="Cerrar" radius={999} className="h-11 w-11 !p-0">
+            <GlassButton onClick={onClose} aria-label="Cerrar" className="h-11 w-11 !p-0">
               {chevron('M5 5l10 10M15 5L5 15')}
             </GlassButton>
           </div>
@@ -217,7 +217,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
           {/* Paginación */}
           {!loading && totalPages > 1 && (
             <Glass radius={999} frost="regular" className="mx-auto flex w-fit shrink-0 items-center gap-2 px-2 py-2">
-              <GlassButton onClick={goToPrevPage} disabled={page === 0} aria-label="Página anterior" radius={999} className="h-9 w-9 !p-0">
+              <GlassButton onClick={goToPrevPage} disabled={page === 0} aria-label="Página anterior" className="h-9 w-9 !p-0">
                 {chevron('M12.5 5l-5 5 5 5')}
               </GlassButton>
 
@@ -225,7 +225,7 @@ export function GridGalleryModal({ initialImages, initialEvent, eventos, onSelec
                 {page + 1} / {totalPages}
               </div>
 
-              <GlassButton onClick={goToNextPage} disabled={page === totalPages - 1} aria-label="Página siguiente" radius={999} className="h-9 w-9 !p-0">
+              <GlassButton onClick={goToNextPage} disabled={page === totalPages - 1} aria-label="Página siguiente" className="h-9 w-9 !p-0">
                 {chevron('M7.5 5l5 5-5 5')}
               </GlassButton>
             </Glass>

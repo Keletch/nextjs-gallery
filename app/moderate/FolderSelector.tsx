@@ -18,14 +18,13 @@ export default function FolderSelector({
   ]
 
   return (
-    <Glass radius={20} frost="clear" className="mb-6 inline-flex flex-wrap gap-1 p-1.5">
+    <Glass radius={999} frost="clear" className="mb-6 inline-flex flex-wrap gap-1 p-1.5">
       {folders.map(({ label, value }) => (
         <GlassButton
           key={value}
           onClick={() => onChange(value)}
-          radius={14}
           selected={selected === value}
-          className={selected === value ? '' : '!bg-transparent !shadow-none text-white/60 hover:text-white'}
+          className={selected === value ? '' : '!bg-transparent !shadow-none !outline-transparent text-white/60 hover:text-white'}
         >
           {label}
         </GlassButton>

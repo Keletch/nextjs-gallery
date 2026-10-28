@@ -215,8 +215,9 @@ const BUTTON_SIZES = {
     lg: 'px-6 py-3.5 text-base',
 }
 
-// Botón de vidrio (también sirve para links: as={Link})
-export function GlassButton({ as = 'button', size = 'md', radius = 14, className, ...rest }: ButtonProps) {
+// Botón de vidrio (también sirve para links: as={Link}). Píldora y contorno fino en todo el sitio: el brillo
+// del vidrio solo se notaba en los botones anchos, los circulares parecían no tener borde
+export function GlassButton({ as = 'button', size = 'md', radius = 999, className, ...rest }: ButtonProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { frost, ...props } = rest
     return (
@@ -227,6 +228,7 @@ export function GlassButton({ as = 'button', size = 'md', radius = 14, className
             refraction={30}
             className={cn(
                 'inline-flex items-center justify-center gap-2 font-medium tracking-tight cursor-pointer select-none',
+                'outline-1 outline-solid outline-white/20 -outline-offset-1',
                 'transition-[transform,background-color] duration-200 ease-out',
                 'hover:bg-white/[0.11] active:scale-[0.97]',
                 'disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
@@ -244,7 +246,7 @@ const FIELD = 'w-full bg-transparent px-4 py-3 text-white placeholder:text-white
 
 export function GlassInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
     return (
-        <Glass radius={14} frost="regular" refraction={24} className={cn('focus-within:bg-black/[0.36] transition-colors', className)}>
+        <Glass radius={999} frost="regular" refraction={24} className={cn('outline-1 outline-solid outline-white/20 -outline-offset-1 focus-within:bg-black/[0.36] transition-colors', className)}>
             <input {...props} className={FIELD} />
         </Glass>
     )
@@ -252,15 +254,16 @@ export function GlassInput({ className, ...props }: React.InputHTMLAttributes<HT
 
 export function GlassTextarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
     return (
-        <Glass radius={16} frost="regular" refraction={24} className={cn('focus-within:bg-black/[0.36] transition-colors', className)}>
+        <Glass radius={16} frost="regular" refraction={24} className={cn('outline-1 outline-solid outline-white/20 -outline-offset-1 focus-within:bg-black/[0.36] transition-colors', className)}>
             <textarea {...props} className={cn(FIELD, 'resize-none')} />
         </Glass>
     )
 }
 
-export function GlassSelect({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+// frost "clear" + refracción de botón: para que en una barra se vea igual que los GlassButton de al lado
+export function GlassSelect({ className, children, frost = 'regular', radius = 999, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { frost?: Frost; radius?: number }) {
     return (
-        <Glass radius={14} frost="regular" refraction={24} className={cn('focus-within:bg-black/[0.36] transition-colors', className)}>
+        <Glass radius={radius} frost={frost} refraction={frost === 'clear' ? 30 : 24} className={cn('outline-1 outline-solid outline-white/20 -outline-offset-1 focus-within:bg-black/[0.36] transition-colors', className)}>
             <select {...props} className={cn(FIELD, 'cursor-pointer appearance-none pr-10 [&>option]:bg-neutral-900')}>
                 {children}
             </select>

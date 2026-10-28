@@ -133,7 +133,7 @@ export default function CreateEventPanel({
 
   return (
     <div className="mb-6">
-      <GlassButton onClick={() => setShowPopup(true)} size="lg" radius={16}>
+      <GlassButton onClick={() => setShowPopup(true)} size="lg">
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M10 4v12M4 10h12" strokeLinecap="round" />
         </svg>

@@ -93,8 +93,8 @@ export default function Home() {
                 <div className="flex w-full max-w-3xl flex-col gap-8 py-12 sm:gap-10 sm:py-16">
 
                     <header className="space-y-3 text-center">
-                        {/* Una sola palabra: serif itálica grande, en vez de la sans en negrita de antes */}
-                        <h1 className="font-[family-name:var(--font-display)] text-7xl font-medium italic leading-none tracking-[-0.01em] text-white sm:text-8xl md:text-9xl">
+                        {/* Raleway (letra del sitio) en su peso delgado */}
+                        <h1 className="text-7xl font-light leading-none tracking-[-0.02em] text-white sm:text-8xl md:text-9xl">
                             Galería
                         </h1>
                         {/* El logo de arriba ya dice "Club de Inversionistas": aquí no se repite */}
@@ -113,7 +113,7 @@ export default function Home() {
                             href="/gallery"
                             radius={999}
                             frost="clear"
-                            className="px-6 py-3 text-base font-medium tracking-tight transition-[transform,background-color] duration-300 hover:bg-white/[0.12] active:scale-[0.97] sm:px-7"
+                            className="outline-1 outline-solid outline-white/20 -outline-offset-1 px-6 py-3 text-base font-medium transition-[transform,background-color] duration-300 hover:bg-white/[0.12] active:scale-[0.97] sm:px-7"
                         >
                             Ver galería
                         </Glass>
@@ -122,7 +122,7 @@ export default function Home() {
                             href="/upload"
                             radius={999}
                             frost="clear"
-                            className="px-6 py-3 text-base font-medium tracking-tight transition-[transform,background-color] duration-300 hover:bg-white/[0.12] active:scale-[0.97] sm:px-7"
+                            className="outline-1 outline-solid outline-white/20 -outline-offset-1 px-6 py-3 text-base font-medium transition-[transform,background-color] duration-300 hover:bg-white/[0.12] active:scale-[0.97] sm:px-7"
                         >
                             Subir foto
                         </Glass>

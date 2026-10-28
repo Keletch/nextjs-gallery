@@ -47,18 +47,17 @@ export default function DefaultViewPanel() {
         <p className="mt-1 text-xs text-white/50">Con la que abre la galería. Cada visitante puede cambiarla después.</p>
         {status && <p className="mt-2 text-xs text-white/80">{status}</p>}
       </div>
-      <div role="radiogroup" aria-label="Vista por defecto" className="flex shrink-0 rounded-[14px] bg-black/20 p-1">
+      <div role="radiogroup" aria-label="Vista por defecto" className="flex shrink-0 rounded-full bg-black/20 p-1">
         {OPTIONS.map(([mode, label]) => (
           <GlassButton
             key={mode}
             role="radio"
             aria-checked={view === mode}
             size="sm"
-            radius={10}
             selected={view === mode}
             disabled={view === null || saving}
             onClick={() => save(mode)}
-            className={view === mode ? '' : '!bg-transparent !shadow-none text-white/65'}
+            className={view === mode ? '' : '!bg-transparent !shadow-none !outline-transparent text-white/65'}
           >
             {label}
           </GlassButton>
