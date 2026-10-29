@@ -137,13 +137,13 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
     }
   }
 
-  const loading = (!imageUrl || !info) && hashValid
+  const loading = !imageLoaded && hashValid
 
   const infoPanel = info && (
     <Glass
       radius={28}
       frost="heavy"
-      className="w-full px-6 py-5 text-center animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300"
+      className="w-full px-6 py-5 text-center animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300 fill-mode-backwards"
       onClick={(e) => e.stopPropagation()}
     >
       <p className="mb-1 text-lg font-semibold tracking-tight">
@@ -229,16 +229,22 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
         style={{ WebkitOverflowScrolling: 'touch' }}
         onClick={onClose}
       >
-        <div className="my-auto flex w-full flex-col items-center gap-5">
-          {loading && loadingState}
-
-          {imageUrl && (
-            <img
-              src={imageUrl}
-              alt="fullscreen"
-              className={`h-auto max-h-[max(50dvh,calc(100dvh-300px))] w-auto max-w-[min(94vw,1300px)] rounded-[28px] object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'}`}
-              onLoad={() => setImageLoaded(true)}
-            />
+        {/* Todo en su lugar desde el inicio: la foto tiene un marco de alto fijo (con "Cargando" al centro) y el
+            panel va justo debajo, así nada se mueve cuando llegan los datos o la imagen */}
+        <div className="flex w-full flex-col items-center gap-5">
+          {hashValid && (
+            <div className="relative flex h-[max(50dvh,calc(100dvh-300px))] w-full max-w-[min(94vw,1300px)] items-center justify-center">
+              {loading && <div className="absolute inset-0 flex items-center justify-center">{loadingState}</div>}
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt="fullscreen"
+                  className={`max-h-full max-w-full rounded-[28px] object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'}`}
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageLoaded(true)}
+                />
+              )}
+            </div>
           )}
 
           {info && <div className="w-full max-w-[600px]">{infoPanel}</div>}

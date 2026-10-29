@@ -137,6 +137,9 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
 
   // Qué foto muestra cada ficha y en qué capa (0/1) está la visible
   const shownRef = useRef<number[]>([]);
+  // Foto tocada: se abre en el click que sigue al toque, no al soltar. Si se abriera al soltar, en celular
+  // ese click caería sobre el visor recién abierto y lo cerraría
+  const tapRef = useRef<DriftWallItem | null>(null);
   const layerRef = useRef<number[]>([]);
   const [visible, setVisible] = useState(false);
   const visibleRef = useRef(visible);
@@ -226,6 +229,7 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
   // Arrastre: la superficie del frente sigue al dedo
   const onPointerDown = (e: React.PointerEvent) => {
     if (dragRef.current) return;
+    tapRef.current = null;
     dragRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), moved: false, vx: 0, vy: 0 };
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -261,8 +265,7 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
       if (e.type !== 'pointerup') return;
       const tileEl = (e.target as HTMLElement).closest<HTMLElement>('[data-tile]');
       const index = tileEl ? Number(tileEl.dataset.tile) : -1;
-      const item = items[shownRef.current[index]];
-      if (item) onItemClick?.(item);
+      tapRef.current = items[shownRef.current[index]] ?? null;
       return;
     }
     // Si se soltó quieto, sin impulso
@@ -441,6 +444,11 @@ export default function DomeGallery({ items, itemsKey = '', paused = false, shuf
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
+      onClick={() => {
+        const item = tapRef.current;
+        tapRef.current = null;
+        if (item) onItemClick?.(item);
+      }}
     >
       <div className={`dome__stage ${visible ? 'is-visible' : ''}`}>
         <div ref={sphereRef} className="dome__sphere">
