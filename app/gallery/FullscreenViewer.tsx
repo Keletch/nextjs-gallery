@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabaseClient } from '@/lib/supabase-client'
 import { Download, Link } from 'lucide-react'
 import Glass, { GlassButton } from '@/components/Glass'
+import { photoFile } from '@/lib/photos'
 
 interface FullscreenViewerProps {
   hash: string
@@ -41,7 +42,9 @@ function TypewriterText({ text, delay = 0, speed = 30 }: { text: string; delay?:
 export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProps) {
   const base = 'https://sinpfcbinaiasorunmpz.supabase.co/storage/v1/object/public/nextjsGallery'
 
+  // Se ve la mediana (1280 px, ~4× más ligera); la original solo se baja al descargar
   const [imageUrl, setImageUrl] = useState<string>('')
+  const [originalUrl, setOriginalUrl] = useState<string>('')
   const [info, setInfo] = useState<{
     evento: string
     description: string
@@ -62,7 +65,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
 
       const { data } = await supabaseClient
         .from('imageInfo')
-        .select('evento, description, created_at')
+        .select('*') // '*' por si aún no existe "version"
         .eq('imghash', hash)
         .maybeSingle()
 
@@ -86,7 +89,9 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
         created_at: data.created_at,
       })
 
-      setImageUrl(`${base}/${eventoRaw}/approved/${hash}.webp`)
+      const file = photoFile(hash, data.version)
+      setImageUrl(`${base}/${eventoRaw}/medium/med_${file}`)
+      setOriginalUrl(`${base}/${eventoRaw}/approved/${file}`)
     }
 
     fetchInfo()
@@ -114,7 +119,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
 
   const downloadImage = async () => {
     try {
-      const response = await fetch(imageUrl)
+      const response = await fetch(originalUrl)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -133,7 +138,7 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
     } catch (error) {
       console.error('Error downloading image:', error)
       // Fallback
-      window.open(imageUrl, '_blank')
+      window.open(originalUrl, '_blank')
     }
   }
 
@@ -241,7 +246,8 @@ export default function FullscreenViewer({ hash, onClose }: FullscreenViewerProp
                   alt="fullscreen"
                   className={`max-h-full max-w-full rounded-[28px] object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] transition-all duration-700 ease-out ${imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'}`}
                   onLoad={() => setImageLoaded(true)}
-                  onError={() => setImageLoaded(true)}
+                  // Fotos subidas antes de que existiera la mediana: se muestra la original
+                  onError={() => (imageUrl !== originalUrl ? setImageUrl(originalUrl) : setImageLoaded(true))}
                 />
               )}
             </div>

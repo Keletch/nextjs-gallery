@@ -46,7 +46,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   try {
     const { data: info } = await supabaseServer
       .from('imageInfo')
-      .select('evento, description')
+      .select('*') // '*' por si aún no existe "version"
       .eq('imghash', hash)
       .maybeSingle()
 
@@ -55,7 +55,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     }
 
     // Recorte 1200×630 en JPG (ver app/api/og): la original es WebP pesado y de otras medidas
-    const imageUrl = `https://galeria.chu.mx/api/og/${hash}`
+    // ?v= cambia al rotar o voltear la foto: las redes y la CDN no reutilizan la vista previa vieja
+    const imageUrl = `https://galeria.chu.mx/api/og/${hash}${info.version ? `?v=${info.version}` : ''}`
 
     return {
       title: info.description || 'Imagen',

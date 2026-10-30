@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { supabaseClient } from '@/lib/supabase-client'
+import { hashOf } from '@/lib/photos'
 import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw } from 'lucide-react'
 import Glass, { GlassButton, GlassTextarea } from '@/components/Glass'
 
@@ -33,7 +34,7 @@ export default function ModeratorImageViewer({
   const [hasChanges, setHasChanges] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
 
-  const hash = filename.replace(/\.webp$/, '')
+  const hash = hashOf(filename)
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -89,7 +90,8 @@ export default function ModeratorImageViewer({
       if (description !== originalDescription) {
         const { error: descError } = await supabaseClient
           .from('imageInfo')
-          .update({ description: description.trim() || null })
+          // '' y no null: description es parte de la llave primaria de imageInfo
+          .update({ description: description.trim() })
           .eq('imghash', hash)
 
         if (descError) throw new Error('Error al guardar descripción')

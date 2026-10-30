@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { logAction, supabase } from '@/lib/supabase-admin'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { PHOTO_CACHE_CONTROL } from '@/lib/photos'
 
 const MAX_SIZE_MB = 50
 const RESIZE_THRESHOLD_MB = 10
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
     const baseName = `${hash}.webp`
     const originalFilename = baseName
     const thumbnailFilename = `thumb_${baseName}`
+    const mediumFilename = `med_${baseName}`
 
     const { data: eventData, error: eventError } = await supabase
       .from('events')
@@ -128,10 +130,18 @@ export async function POST(req: NextRequest) {
       .webp({ quality: 78, effort: 4 })
       .toBuffer()
 
+    // 1280 px para el visor de la galería: ~4× más ligera que la original, que solo se baja al descargar
+    const mediumBuffer = await sharp(resizedBuffer)
+      .rotate()
+      .resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80, effort: 4 })
+      .toBuffer()
+
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
       .upload(`${ruta}/pending/${originalFilename}`, originalBuffer, {
         contentType: 'image/webp',
+        cacheControl: PHOTO_CACHE_CONTROL,
         upsert: false,
       })
     if (uploadError) throw uploadError
@@ -140,9 +150,19 @@ export async function POST(req: NextRequest) {
       .from(BUCKET)
       .upload(`${ruta}/thumbnails/${thumbnailFilename}`, thumbnailBuffer, {
         contentType: 'image/webp',
+        cacheControl: PHOTO_CACHE_CONTROL,
         upsert: false,
       })
     if (thumbError) throw thumbError
+
+    const { error: mediumError } = await supabase.storage
+      .from(BUCKET)
+      .upload(`${ruta}/medium/${mediumFilename}`, mediumBuffer, {
+        contentType: 'image/webp',
+        cacheControl: PHOTO_CACHE_CONTROL,
+        upsert: false,
+      })
+    if (mediumError) throw mediumError
 
     const { error: dbError } = await supabase.from('imageInfo').insert({
       imghash: hash,
@@ -157,7 +177,7 @@ export async function POST(req: NextRequest) {
       // Sin registro la foto no sirve (el visor y compartir la buscan ahí): se quitan sus archivos
       await supabase.storage
         .from(BUCKET)
-        .remove([`${ruta}/pending/${originalFilename}`, `${ruta}/thumbnails/${thumbnailFilename}`])
+        .remove([`${ruta}/pending/${originalFilename}`, `${ruta}/thumbnails/${thumbnailFilename}`, `${ruta}/medium/${mediumFilename}`])
       return NextResponse.json({ error: 'Error al registrar imagen en base de datos' }, { status: 500 })
     }
 

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { ChevronDown } from 'lucide-react'
 import Glass, { GlassButton, GlassInput, GlassSelect } from '@/components/Glass'
 
 type Event = {
@@ -44,6 +45,7 @@ export default function EventSelector({
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [eventStatus, setEventStatus] = useState('')
+  const [showConfig, setShowConfig] = useState(false)
 
   useEffect(() => {
     fetchEvents()
@@ -291,7 +293,19 @@ export default function EventSelector({
 
       {selectedEvent && (
         <Glass radius={26} frost="regular" className="mt-6 p-6">
-          <h4 className="mb-5 text-lg font-semibold tracking-tight">Configuración del evento</h4>
+          {/* Plegable (cerrado al inicio): así el panel de fotos queda a la vista sin tanto scroll */}
+          <button
+            type="button"
+            onClick={() => setShowConfig(v => !v)}
+            aria-expanded={showConfig}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <h4 className="text-lg font-semibold tracking-tight">Configuración del evento</h4>
+            <ChevronDown className={`h-5 w-5 text-white/60 transition-transform duration-300 ${showConfig ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showConfig && (
+          <div className="mt-5">
 
           <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Color */}
@@ -512,6 +526,8 @@ export default function EventSelector({
             )}
             {eventStatus && <p className="text-xs text-white/80">{eventStatus}</p>}
           </Glass>
+          </div>
+          )}
         </Glass>
       )}
     </>

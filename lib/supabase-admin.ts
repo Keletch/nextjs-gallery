@@ -1,6 +1,7 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { verifyModerator } from './auth-check'
+import { hashOf } from './photos'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +39,7 @@ export async function moveFile(filename: string, from: string, to: string): Prom
     const { error: markError } = await supabase
         .from('imageInfo')
         .update({ aprobada_en: to.endsWith('/approved') ? new Date().toISOString() : null })
-        .eq('imghash', filename.replace(/\.webp$/, ''))
+        .eq('imghash', hashOf(filename))
     if (markError) console.error('[moveFile] No se pudo marcar aprobada_en:', markError.message)
 }
 

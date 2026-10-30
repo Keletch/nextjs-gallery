@@ -3,6 +3,7 @@ import { verifyModerator } from '@/lib/auth-check'
 import { supabase } from '@/lib/supabase-admin'
 import { isValidEventRoute, isValidFilename, isModerationFolder } from '@/lib/validate'
 import sharp from 'sharp'
+import { PHOTO_CACHE_CONTROL, hashOf, photoFile } from '@/lib/photos'
 
 const BUCKET = 'nextjsGallery'
 
@@ -32,31 +33,27 @@ export async function POST(req: NextRequest) {
     }
 
 
-    // Rutas de los archivos
-    const originalPath = `${evento}/${folder}/${filename}`
-    const thumbPath = `${evento}/thumbnails/thumb_${filename}`
+    // Cada cambio sube la versión y guarda archivos con otro nombre: con caché de un año, sobrescribir el
+    // mismo nombre seguiría mostrando la foto anterior (ver lib/photos.ts)
+    const hash = hashOf(filename)
+    const { data: info, error: infoError } = await supabase
+      .from('imageInfo')
+      .select('*') // '*' por si aún no existe "version"
+      .eq('imghash', hash)
+      .maybeSingle()
 
-    // Función para aplicar transformaciones
-    const applyTransform = async (buffer: Buffer) => {
-      let transformer = sharp(buffer)
-
-      // Aplicar rotación
-      if (rotation && rotation !== 0) {
-        transformer = transformer.rotate(rotation)
-      }
-
-      // Aplicar volteos
-      if (flipH || flipV) {
-        transformer = transformer.flip(flipV).flop(flipH)
-      }
-
-      return transformer.webp({ quality: 95, effort: 4 }).toBuffer()
+    if (infoError || !info) {
+      return NextResponse.json({ error: 'No se encontró el registro de la foto' }, { status: 404 })
+    }
+    if (info.version === undefined) {
+      return NextResponse.json({ error: 'Falta agregar la columna "version" en Supabase' }, { status: 500 })
     }
 
-    // Transformar imagen original
+    const newFile = photoFile(hash, info.version + 1)
+
     const { data: originalFile, error: downloadError } = await supabase.storage
       .from(BUCKET)
-      .download(originalPath)
+      .download(`${evento}/${folder}/${filename}`)
 
     if (downloadError || !originalFile) {
       return NextResponse.json(
@@ -65,59 +62,62 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const originalBuffer = Buffer.from(await originalFile.arrayBuffer())
-    const transformedOriginal = await applyTransform(originalBuffer)
+    let transformer = sharp(Buffer.from(await originalFile.arrayBuffer()))
+    if (rotation) transformer = transformer.rotate(rotation)
+    if (flipH || flipV) transformer = transformer.flip(flipV).flop(flipH)
+    const original = await transformer.webp({ quality: 95, effort: 4 }).toBuffer()
 
-    // Subir imagen original transformada
-    const { error: uploadOriginalError } = await supabase.storage
-      .from(BUCKET)
-      .upload(originalPath, transformedOriginal, {
+    // Miniatura y mediana salen de la original ya transformada (mismos tamaños que en /api/upload)
+    const thumb = await sharp(original)
+      .resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 78, effort: 4 })
+      .toBuffer()
+    const medium = await sharp(original)
+      .resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80, effort: 4 })
+      .toBuffer()
+
+    for (const [path, buffer] of [
+      [`${evento}/${folder}/${newFile}`, original],
+      [`${evento}/thumbnails/thumb_${newFile}`, thumb],
+      [`${evento}/medium/med_${newFile}`, medium],
+    ] as const) {
+      const { error } = await supabase.storage.from(BUCKET).upload(path, buffer, {
         contentType: 'image/webp',
+        cacheControl: PHOTO_CACHE_CONTROL,
         upsert: true,
       })
-
-    if (uploadOriginalError) {
-      console.error('[transform-image] Error al subir original:', uploadOriginalError)
-      return NextResponse.json(
-        { error: 'Error al guardar imagen transformada' },
-        { status: 500 }
-      )
+      if (error) {
+        console.error('[transform-image] Error al subir', path, error)
+        return NextResponse.json({ error: 'Error al guardar imagen transformada' }, { status: 500 })
+      }
     }
 
-    // Transformar thumbnail
-    const { data: thumbFile, error: thumbDownloadError } = await supabase.storage
+    // La galería abierta recibe este cambio por Realtime y cambia a la versión nueva
+    const { error: versionError } = await supabase
+      .from('imageInfo')
+      .update({ version: info.version + 1 })
+      .eq('imghash', hash)
+
+    if (versionError) {
+      console.error('[transform-image] Error al actualizar versión:', versionError)
+      return NextResponse.json({ error: 'Error al guardar imagen transformada' }, { status: 500 })
+    }
+
+    // Los archivos de la versión anterior ya no los usa nadie (la mediana puede no existir en fotos viejas)
+    const { error: removeError } = await supabase.storage
       .from(BUCKET)
-      .download(thumbPath)
-
-    if (thumbDownloadError || !thumbFile) {
-      console.warn('[transform-image] No se pudo descargar thumbnail, continuando...')
-    } else {
-      const thumbBuffer = Buffer.from(await thumbFile.arrayBuffer())
-
-      // Aplicar mismas transformaciones al thumbnail
-      let thumbTransformer = sharp(thumbBuffer)
-
-      if (rotation && rotation !== 0) {
-        thumbTransformer = thumbTransformer.rotate(rotation)
-      }
-
-      if (flipH || flipV) {
-        thumbTransformer = thumbTransformer.flip(flipV).flop(flipH)
-      }
-
-      const transformedThumb = await thumbTransformer
-        .webp({ quality: 80, effort: 3 })
-        .toBuffer()
-
-      await supabase.storage.from(BUCKET).upload(thumbPath, transformedThumb, {
-        contentType: 'image/webp',
-        upsert: true,
-      })
-    }
+      .remove([
+        `${evento}/${folder}/${filename}`,
+        `${evento}/thumbnails/thumb_${filename}`,
+        `${evento}/medium/med_${filename}`,
+      ])
+    if (removeError) console.error('[transform-image] No se borró la versión anterior:', removeError)
 
     return NextResponse.json({
       success: true,
       message: 'Imagen transformada correctamente',
+      filename: newFile,
     })
   } catch (err) {
     console.error('[transform-image] Error:', err)

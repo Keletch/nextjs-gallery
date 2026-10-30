@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import useGallerySpeed from './UseGallerySpeed'
 import FullscreenViewer from './FullscreenViewer'
+import { hashOf, photoFile } from '@/lib/photos'
 import DriftWall, { type DriftWallItem } from '@/components/DriftWall'
 import DomeGallery from '@/components/DomeGallery'
 import { ChevronDown, ChevronRight, House, ImagePlus } from 'lucide-react'
@@ -214,8 +215,7 @@ export default function GalleryClient({ defaultView = 'wall', eventos }: { defau
     }, [])
 
     const extractHash = (url: string) => {
-        const filename = url.split('/').pop() || ''
-        return filename.replace('.webp', '')
+        return hashOf(url.split('/').pop() || '')
     }
 
     const handleSelect = (imageUrl: string) => {
@@ -406,10 +406,11 @@ export default function GalleryClient({ defaultView = 'wall', eventos }: { defau
         const channel = supabaseClient
             .channel('fotos-aprobadas')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'imageInfo' }, ({ new: row }) => {
-                const { imghash, evento, aprobada_en } = row as { imghash: string; evento: string; aprobada_en: string | null }
+                const { imghash, evento, aprobada_en, version } = row as { imghash: string; evento: string; aprobada_en: string | null; version?: number }
                 const shown = loadedEventRef.current
                 if (shown === null || (shown !== '' && evento !== shown) || !eventos.some(e => e.ruta === evento)) return
-                const filename = `${imghash}.webp`
+                // Con la versión: al rotar o voltear una foto cambia de archivo (ver lib/photos.ts)
+                const filename = photoFile(imghash, version)
                 const apply = () => {
                     if (aprobada_en) {
                         setUrls(prev => prev[filename] ? prev : {
@@ -420,9 +421,11 @@ export default function GalleryClient({ defaultView = 'wall', eventos }: { defau
                                 evento,
                             },
                         })
-                        setImages(prev => prev.includes(filename) ? prev : [...prev, filename])
+                        setImages(prev => prev.some(f => hashOf(f) === imghash)
+                            ? prev.map(f => hashOf(f) === imghash ? filename : f)
+                            : [...prev, filename])
                     } else {
-                        setImages(prev => prev.filter(f => f !== filename))
+                        setImages(prev => prev.filter(f => hashOf(f) !== imghash))
                     }
                 }
                 if (document.hidden) pendingLiveRef.current.push(apply)
@@ -433,7 +436,7 @@ export default function GalleryClient({ defaultView = 'wall', eventos }: { defau
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'imageInfo' }, ({ old }) => {
                 const imghash = (old as { imghash?: string }).imghash
                 if (!imghash) return
-                const apply = () => setImages(prev => prev.filter(f => f !== `${imghash}.webp`))
+                const apply = () => setImages(prev => prev.filter(f => hashOf(f) !== imghash))
                 if (document.hidden) pendingLiveRef.current.push(apply)
                 else apply()
             })

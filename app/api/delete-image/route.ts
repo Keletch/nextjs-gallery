@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyModerator } from '@/lib/auth-check'
 import { deleteFile, logAction, supabase } from '@/lib/supabase-admin'
 import { isValidEventRoute, isValidFilename } from '@/lib/validate'
+import { hashOf } from '@/lib/photos'
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,13 +22,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
     }
 
-    const hash = filename.replace(/\.webp$/, '')
+    const hash = hashOf(filename)
 
     await deleteFile(filename, `${evento}/rejected`)
 
-    await deleteFile(`${hash}.webp`, `${evento}/approved`)
+    await deleteFile(filename, `${evento}/approved`)
 
-    await deleteFile(`thumb_${hash}.webp`, `${evento}/thumbnails`)
+    await deleteFile(`thumb_${filename}`, `${evento}/thumbnails`)
+
+    await deleteFile(`med_${filename}`, `${evento}/medium`)
 
     const { error: deleteError } = await supabase
       .from('imageInfo')
