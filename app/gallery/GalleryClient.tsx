@@ -428,6 +428,15 @@ export default function GalleryClient({ defaultView = 'wall', eventos }: { defau
                 if (document.hidden) pendingLiveRef.current.push(apply)
                 else apply()
             })
+            // Foto eliminada por un moderador: se borra su registro y se quita sin recargar. El aviso
+            // de borrado solo trae la llave primaria, que incluye imghash
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'imageInfo' }, ({ old }) => {
+                const imghash = (old as { imghash?: string }).imghash
+                if (!imghash) return
+                const apply = () => setImages(prev => prev.filter(f => f !== `${imghash}.webp`))
+                if (document.hidden) pendingLiveRef.current.push(apply)
+                else apply()
+            })
             .subscribe()
         return () => { supabaseClient.removeChannel(channel) }
     }, [])
