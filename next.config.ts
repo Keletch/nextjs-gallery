@@ -1,8 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-    // Solo afecta a `next dev`: deja abrir el sitio local desde un túnel de ngrok para probar en otros dispositivos
-    allowedDevOrigins: ['*.ngrok-free.dev'],
+    // Solo afecta a `next dev`: deja abrir el sitio local desde un túnel de ngrok o por la IP de la red
+    // (192.168.*) para probar en otros dispositivos
+    allowedDevOrigins: ['*.ngrok-free.dev', '192.168.*.*'],
     experimental: {
         proxyClientMaxBodySize: 50 * 1024 * 1024,
     },

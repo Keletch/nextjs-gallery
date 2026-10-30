@@ -408,7 +408,7 @@ export default function GalleryClient({ defaultView = 'wall', eventos }: { defau
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'imageInfo' }, ({ new: row }) => {
                 const { imghash, evento, aprobada_en } = row as { imghash: string; evento: string; aprobada_en: string | null }
                 const shown = loadedEventRef.current
-                if (shown === null || (shown !== '' && evento !== shown)) return
+                if (shown === null || (shown !== '' && evento !== shown) || !eventos.some(e => e.ruta === evento)) return
                 const filename = `${imghash}.webp`
                 const apply = () => {
                     if (aprobada_en) {

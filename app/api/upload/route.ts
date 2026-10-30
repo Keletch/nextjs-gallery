@@ -83,11 +83,11 @@ export async function POST(req: NextRequest) {
 
     const { data: eventData, error: eventError } = await supabase
       .from('events')
-      .select('ruta')
+      .select('*') // '*' por si aún no existe "oculto"
       .eq('id', eventId)
       .single()
 
-    if (eventError || !eventData?.ruta) {
+    if (eventError || !eventData?.ruta || eventData.oculto === true) {
       console.error('[UPLOAD] Evento no encontrado:', eventError)
       return NextResponse.json({ error: 'Evento inválido o no registrado' }, { status: 400 })
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { listFiles as listFolder, listEventFolders } from '@/lib/supabase-admin'
 import { isValidEventRoute } from '@/lib/validate'
+import { getHiddenRoutes } from '@/lib/public-events'
 
 function isValidImage(name: string): boolean {
   return (
@@ -28,10 +29,12 @@ export async function GET(req: Request) {
       return NextResponse.json([], { status: 400 })
     }
 
+    const hidden = await getHiddenRoutes()
+
     if (evento) {
-      files = await listFiles(`${evento}/approved`)
+      files = hidden.has(evento) ? [] : await listFiles(`${evento}/approved`)
     } else {
-      const eventos = await listEventFolders()
+      const eventos = (await listEventFolders()).filter((ev) => !hidden.has(ev))
       const allFiles = await Promise.all(
         eventos.map((ev) => listFiles(`${ev}/approved`))
       )

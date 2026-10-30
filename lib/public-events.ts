@@ -22,7 +22,7 @@ export async function getPublicEvents(): Promise<PublicEvent[]> {
     throw error ?? new Error('Sin datos de eventos')
   }
 
-  return data.map((e) => ({
+  return data.filter((e) => e.oculto !== true).map((e) => ({
     id: e.id,
     nombre: e.nombre,
     ruta: e.ruta,
@@ -30,4 +30,11 @@ export async function getPublicEvents(): Promise<PublicEvent[]> {
     logo: e.logo,
     destacado: e.destacado === true,
   }))
+}
+
+// Rutas de los eventos ocultos (sus fotos no salen en la galería pública)
+export async function getHiddenRoutes(): Promise<Set<string>> {
+  const { data, error } = await supabase.from('events').select('*') // '*' por si aún no existe "oculto"
+  if (error) throw error
+  return new Set((data ?? []).filter((e) => e.oculto === true).map((e) => e.ruta))
 }

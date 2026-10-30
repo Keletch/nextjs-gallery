@@ -62,6 +62,19 @@ async function listAllEntries(folder: string) {
     }
 }
 
+// 🗑️ Eliminar una carpeta completa con sus subcarpetas (Storage no tiene borrado por carpeta).
+// `keep`: rutas completas que no se borran
+export async function deleteFolder(folder: string, keep: string[] = []): Promise<void> {
+    const entries = await listAllEntries(folder)
+    // Sin metadata = subcarpeta
+    for (const sub of entries.filter(e => !e.metadata)) await deleteFolder(`${folder}/${sub.name}`, keep)
+    const paths = entries.filter(e => e.metadata).map(e => `${folder}/${e.name}`).filter(p => !keep.includes(p))
+    for (let i = 0; i < paths.length; i += PAGE_SIZE) {
+        const { error } = await supabase.storage.from(BUCKET).remove(paths.slice(i, i + PAGE_SIZE))
+        if (error) throw new Error(`Error al eliminar: ${error.message}`)
+    }
+}
+
 // 📁 Listar archivos en carpeta exacta
 export async function listFiles(folder: string): Promise<string[]> {
     try {

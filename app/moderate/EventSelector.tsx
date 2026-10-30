@@ -11,6 +11,7 @@ type Event = {
   logo?: string
   destacado?: boolean
   hashtags?: string
+  oculto?: boolean
 }
 
 const MAX_LOGO_SIZE_MB = 10
@@ -38,6 +39,11 @@ export default function EventSelector({
   const [hashtags, setHashtags] = useState('')
   const [savingHashtags, setSavingHashtags] = useState(false)
   const [hashtagsStatus, setHashtagsStatus] = useState('')
+  const [updatingHidden, setUpdatingHidden] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [eventStatus, setEventStatus] = useState('')
 
   useEffect(() => {
     fetchEvents()
@@ -205,6 +211,47 @@ export default function EventSelector({
     }
   }
 
+  const handleToggleHidden = async () => {
+    if (!selectedEvent) return
+    setUpdatingHidden(true)
+    setEventStatus('')
+    try {
+      const res = await fetch('/api/set-event-hidden', {
+        method: 'POST',
+        body: JSON.stringify({ eventId: selectedEvent.id, oculto: !selectedEvent.oculto }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al actualizar el evento')
+      await fetchEvents()
+    } catch (err) {
+      setEventStatus(err instanceof Error ? err.message : 'Error al actualizar el evento')
+    } finally {
+      setUpdatingHidden(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!selectedEvent || deleteConfirm !== selectedEvent.ruta) return
+    setDeleting(true)
+    setEventStatus('')
+    try {
+      const res = await fetch('/api/delete-event', {
+        method: 'POST',
+        body: JSON.stringify({ eventId: selectedEvent.id, confirmacion: deleteConfirm }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo eliminar el evento')
+      onChange('')
+      await fetchEvents()
+    } catch (err) {
+      setEventStatus(err instanceof Error ? err.message : 'No se pudo eliminar el evento')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const handleCancelLogo = () => {
     setShowLogoUpload(false)
     setLogoFile(null)
@@ -222,11 +269,21 @@ export default function EventSelector({
     <>
       <div className="mb-4">
         <label className="mb-2 block pl-1 text-sm font-medium text-white/75">Evento</label>
-        <GlassSelect value={selected} onChange={e => onChange(e.target.value)} disabled={loading}>
+        <GlassSelect
+          value={selected}
+          onChange={e => {
+            // Al cambiar de evento se cierra la confirmación de borrado
+            setShowDelete(false)
+            setDeleteConfirm('')
+            setEventStatus('')
+            onChange(e.target.value)
+          }}
+          disabled={loading}
+        >
           <option value="">Selecciona un evento</option>
           {eventos.map(ev => (
             <option key={ev.id} value={ev.ruta}>
-              {ev.destacado ? `${ev.nombre} (destacado)` : ev.nombre}
+              {ev.nombre}{ev.destacado ? ' (destacado)' : ''}{ev.oculto ? ' (oculto)' : ''}
             </option>
           ))}
         </GlassSelect>
@@ -281,7 +338,7 @@ export default function EventSelector({
             </div>
             <GlassButton
               onClick={handleToggleFeatured}
-              disabled={updatingFeatured}
+              disabled={updatingFeatured || selectedEvent.oculto}
               selected={!selectedEvent.destacado}
               className="shrink-0"
             >
@@ -405,6 +462,56 @@ export default function EventSelector({
               </div>
             </div>
           )}
+
+          {/* Ocultar o eliminar el evento */}
+          <Glass radius={20} frost="regular" refraction={0} className="mt-6 space-y-3 p-4">
+            <div>
+              <p className="text-sm font-medium text-white/90">{selectedEvent.oculto ? 'Evento oculto' : 'Ocultar o eliminar'}</p>
+              <p className="mt-1 text-xs text-white/50">
+                {selectedEvent.oculto
+                  ? 'No sale en la galería ni al subir fotos. Sus fotos se conservan y aquí se pueden seguir moderando.'
+                  : 'Ocultar lo quita de la galería y de la subida sin borrar nada. Eliminar borra el evento, sus fotos y sus registros para siempre.'}
+              </p>
+            </div>
+
+            {!showDelete ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <GlassButton onClick={handleToggleHidden} disabled={updatingHidden}>
+                  {updatingHidden ? 'Guardando...' : selectedEvent.oculto ? 'Mostrar evento' : 'Ocultar evento'}
+                </GlassButton>
+                <GlassButton onClick={() => setShowDelete(true)} className="text-red-300">
+                  Eliminar evento
+                </GlassButton>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-red-300">
+                  Esto no se puede deshacer. Escribe <span className="font-semibold">{selectedEvent.ruta}</span> para confirmar.
+                </p>
+                <GlassInput
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={e => setDeleteConfirm(e.target.value)}
+                  placeholder={selectedEvent.ruta}
+                  disabled={deleting}
+                  autoComplete="off"
+                />
+                <div className="flex gap-2">
+                  <GlassButton
+                    onClick={handleDelete}
+                    disabled={deleting || deleteConfirm !== selectedEvent.ruta}
+                    className="flex-1 text-red-300"
+                  >
+                    {deleting ? 'Eliminando...' : 'Eliminar para siempre'}
+                  </GlassButton>
+                  <GlassButton onClick={() => { setShowDelete(false); setDeleteConfirm('') }} disabled={deleting}>
+                    Cancelar
+                  </GlassButton>
+                </div>
+              </div>
+            )}
+            {eventStatus && <p className="text-xs text-white/80">{eventStatus}</p>}
+          </Glass>
         </Glass>
       )}
     </>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-route'
+import { verifyModerator } from '@/lib/auth-check'
 
 export async function GET() {
   try {
@@ -14,8 +15,10 @@ export async function GET() {
       return NextResponse.json({ error: 'No se pudieron cargar los eventos' }, { status: 500 })
     }
 
+    const { authorized } = await verifyModerator()
+
     return NextResponse.json(
-      (data ?? []).map((e) => ({
+      (data ?? []).filter((e) => authorized || e.oculto !== true).map((e) => ({
         id: e.id,
         nombre: e.nombre,
         ruta: e.ruta,
@@ -23,6 +26,7 @@ export async function GET() {
         logo: e.logo,
         destacado: e.destacado === true,
         hashtags: e.hashtags ?? '',
+        oculto: e.oculto === true,
       }))
     )
   } catch (err) {
