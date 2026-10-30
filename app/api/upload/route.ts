@@ -147,11 +147,17 @@ export async function POST(req: NextRequest) {
     const { error: dbError } = await supabase.from('imageInfo').insert({
       imghash: hash,
       evento: ruta,
-      description: description || null,
+      // '' y no null: description es parte de la llave primaria de imageInfo y no acepta null
+      // (con null fallaba toda subida sin descripción)
+      description: description?.trim() || '',
     })
 
     if (dbError) {
       console.error('[UPLOAD] Error al registrar en imageInfo:', dbError)
+      // Sin registro la foto no sirve (el visor y compartir la buscan ahí): se quitan sus archivos
+      await supabase.storage
+        .from(BUCKET)
+        .remove([`${ruta}/pending/${originalFilename}`, `${ruta}/thumbnails/${thumbnailFilename}`])
       return NextResponse.json({ error: 'Error al registrar imagen en base de datos' }, { status: 500 })
     }
 

@@ -57,6 +57,17 @@ export function useModeration(evento: string, folder: Folder) {
     fetchImages()
   }, [evento, folder])
 
+  // Fotos nuevas en vivo: cada subida inserta su registro en imageInfo (después de guardar los
+  // archivos), así que en Pendientes se recarga la lista sin que el moderador actualice la página
+  useEffect(() => {
+    if (!evento || folder !== 'pending') return
+    const channel = supabaseClient
+      .channel(`pendientes-${evento}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'imageInfo', filter: `evento=eq.${evento}` }, () => fetchImages())
+      .subscribe()
+    return () => { supabaseClient.removeChannel(channel) }
+  }, [evento, folder])
+
   useEffect(() => {
     if (folder !== 'logs') return
 

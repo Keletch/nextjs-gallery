@@ -10,7 +10,7 @@ import CreateEventPanel from './CreateEventPanel'
 import { useModeration } from './UseModeration'
 import GhostFibers from '@/components/GhostFibers'
 import { randomColors, randomFiberParams } from '@/lib/background'
-import Glass from '@/components/Glass'
+import Glass, { GlassButton } from '@/components/Glass'
 
 type Folder = 'pending' | 'approved' | 'rejected' | 'logs'
 
@@ -25,6 +25,15 @@ export default function ModeratePage() {
   const [folder, setFolder] = useState<Folder>('pending')
   const [fiberParams, setFiberParams] = useState<ReturnType<typeof generateFiberParams> | null>(null)
   const [mounted, setMounted] = useState(false)
+  // Confirmación antes de mover o borrar una foto (antes era el confirm() del navegador)
+  const [confirming, setConfirming] = useState<{ message: string; filename: string; run: () => void } | null>(null)
+  const ask = (message: string, filename: string, run: () => void) => setConfirming({ message, filename, run })
+  useEffect(() => {
+    if (!confirming) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setConfirming(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [confirming])
 
   const {
     images,
@@ -49,17 +58,13 @@ export default function ModeratePage() {
           {
             label: 'Aprobar',
             handler: filename => {
-              if (confirm(`¿Aprobar "${filename}"?`)) {
-                handleAction('/api/approved', { filename }, `Aprobada: ${filename}`)
-              }
+              ask(`¿Aprobar esta foto?`, filename, () => handleAction('/api/approved', { filename }, `Aprobada: ${filename}`))
             },
           },
           {
             label: 'Rechazar',
             handler: filename => {
-              if (confirm(`¿Rechazar "${filename}"?`)) {
-                handleAction('/api/reject', { filename }, `Rechazada: ${filename}`)
-              }
+              ask(`¿Rechazar esta foto?`, filename, () => handleAction('/api/reject', { filename }, `Rechazada: ${filename}`))
             },
           },
         ]
@@ -68,17 +73,13 @@ export default function ModeratePage() {
           {
             label: 'Mover a rechazadas',
             handler: filename => {
-              if (confirm(`¿Mover "${filename}" a rechazadas?`)) {
-                handleAction('/api/move-to-rejected', { filename, from: 'approved' }, `Movida a rechazadas: ${filename}`)
-              }
+              ask(`¿Mover esta foto a rechazadas?`, filename, () => handleAction('/api/move-to-rejected', { filename, from: 'approved' }, `Movida a rechazadas: ${filename}`))
             },
           },
           {
             label: 'Eliminar',
             handler: filename => {
-              if (confirm(`¿Eliminar "${filename}" permanentemente?`)) {
-                handleAction('/api/delete-image', { filename, folder: 'approved' }, `Eliminada: ${filename}`)
-              }
+              ask(`¿Eliminar esta foto para siempre?`, filename, () => handleAction('/api/delete-image', { filename, folder: 'approved' }, `Eliminada: ${filename}`))
             },
           },
         ]
@@ -87,17 +88,13 @@ export default function ModeratePage() {
           {
             label: 'Mover a aprobadas',
             handler: filename => {
-              if (confirm(`¿Mover "${filename}" a aprobadas?`)) {
-                handleAction('/api/move-to-approved', { filename, from: 'rejected' }, `Movida a aprobadas: ${filename}`)
-              }
+              ask(`¿Mover esta foto a aprobadas?`, filename, () => handleAction('/api/move-to-approved', { filename, from: 'rejected' }, `Movida a aprobadas: ${filename}`))
             },
           },
           {
             label: 'Eliminar',
             handler: filename => {
-              if (confirm(`¿Eliminar "${filename}" permanentemente?`)) {
-                handleAction('/api/delete-image', { filename, folder: 'rejected' }, `Eliminada: ${filename}`)
-              }
+              ask(`¿Eliminar esta foto para siempre?`, filename, () => handleAction('/api/delete-image', { filename, folder: 'rejected' }, `Eliminada: ${filename}`))
             },
           },
         ]
@@ -155,6 +152,44 @@ export default function ModeratePage() {
             <LogsPanel logs={logs} logView={logView} setLogView={setLogView} />
           )}
         </div>
+
+        {confirming && (
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setConfirming(null)}
+          >
+            <Glass
+              radius={28}
+              frost="heavy"
+              role="dialog"
+              aria-modal="true"
+              className="w-full max-w-sm p-6 text-center animate-in zoom-in-95 fade-in duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              {urls[confirming.filename]?.thumb && (
+                <img
+                  src={urls[confirming.filename].thumb}
+                  alt=""
+                  className="mx-auto mb-4 max-h-48 rounded-[18px] object-contain"
+                />
+              )}
+              <p className="mb-5 text-base font-medium text-white">{confirming.message}</p>
+              <div className="flex gap-2">
+                <GlassButton onClick={() => setConfirming(null)} className="flex-1">
+                  Cancelar
+                </GlassButton>
+                <GlassButton
+                  selected
+                  autoFocus
+                  className="flex-1"
+                  onClick={() => { confirming.run(); setConfirming(null) }}
+                >
+                  Confirmar
+                </GlassButton>
+              </div>
+            </Glass>
+          </div>
+        )}
       </>
     </AuthGate>
   )
