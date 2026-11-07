@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { supabaseClient } from '@/lib/supabase-client'
-import { hashOf } from '@/lib/photos'
-import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw } from 'lucide-react'
+import { COMPRESS_FROM_BYTES, ORIGINAL_MAX_PX, hashOf } from '@/lib/photos'
+import { FlipHorizontal2, FlipVertical2, Minimize2, RotateCcw, RotateCw } from 'lucide-react'
 import Glass, { GlassButton, GlassTextarea } from '@/components/Glass'
 
 interface ModeratorImageViewerProps {
@@ -28,6 +28,7 @@ export default function ModeratorImageViewer({
   const [rotation, setRotation] = useState(0)
   const [flipH, setFlipH] = useState(false)
   const [flipV, setFlipV] = useState(false)
+  const [compress, setCompress] = useState(false)
   const [fileSize, setFileSize] = useState<number>(0)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<string>('')
@@ -64,9 +65,9 @@ export default function ModeratorImageViewer({
   // Detectar cambios
   useEffect(() => {
     const descChanged = description !== originalDescription
-    const transformChanged = rotation !== 0 || flipH || flipV
+    const transformChanged = rotation !== 0 || flipH || flipV || compress
     setHasChanges(descChanged || transformChanged)
-  }, [description, originalDescription, rotation, flipH, flipV])
+  }, [description, originalDescription, rotation, flipH, flipV, compress])
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
@@ -97,8 +98,8 @@ export default function ModeratorImageViewer({
         if (descError) throw new Error('Error al guardar descripción')
       }
 
-      // 2. Aplicar transformaciones si hay rotación o volteo
-      if (rotation !== 0 || flipH || flipV) {
+      // 2. Aplicar transformaciones si hay rotación, volteo o compresión
+      if (rotation !== 0 || flipH || flipV || compress) {
         const transformRes = await fetch('/api/transform-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -109,6 +110,7 @@ export default function ModeratorImageViewer({
             rotation,
             flipH,
             flipV,
+            compress,
           }),
         })
 
@@ -223,6 +225,11 @@ export default function ModeratorImageViewer({
                   }}
                 >
                   Restablecer
+                </GlassButton>
+              )}
+              {fileSize > COMPRESS_FROM_BYTES && (
+                <GlassButton size="sm" className="mt-2 w-full" selected={compress} onClick={() => setCompress(!compress)}>
+                  <Minimize2 className="h-4 w-4" strokeWidth={1.7} /> Comprimir (máx. {ORIGINAL_MAX_PX} px)
                 </GlassButton>
               )}
             </div>

@@ -7,6 +7,12 @@
 
 export const PHOTO_CACHE_CONTROL = '31536000' // un año: el contenido de un nombre nunca cambia
 
+// Botón "Comprimir" del moderador (/api/transform-image): 2560 px y calidad 85 dejan una foto de celular
+// en ~0.5–1 MB sin pérdida visible. Al subir no se comprime: llegan WebP de 2–4 MB y el moderador decide
+export const ORIGINAL_MAX_PX = 2560
+export const ORIGINAL_QUALITY = 85
+export const COMPRESS_FROM_BYTES = 1024 * 1024 // el moderador ve "Comprimir" en fotos de más de 1 MB
+
 export function photoFile(hash: string, version?: number | null): string {
   return version ? `${hash}-v${version}.webp` : `${hash}.webp`
 }

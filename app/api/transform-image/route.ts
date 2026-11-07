@@ -3,7 +3,7 @@ import { verifyModerator } from '@/lib/auth-check'
 import { supabase } from '@/lib/supabase-admin'
 import { isValidEventRoute, isValidFilename, isModerationFolder } from '@/lib/validate'
 import sharp from 'sharp'
-import { PHOTO_CACHE_CONTROL, hashOf, photoFile } from '@/lib/photos'
+import { ORIGINAL_MAX_PX, ORIGINAL_QUALITY, PHOTO_CACHE_CONTROL, hashOf, photoFile } from '@/lib/photos'
 
 const BUCKET = 'nextjsGallery'
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: reason }, { status: 401 })
     }
 
-    const { filename, evento, folder, rotation, flipH, flipV } = await req.json()
+    const { filename, evento, folder, rotation, flipH, flipV, compress } = await req.json()
 
     if (!filename || !evento || !folder) {
       return NextResponse.json(
@@ -65,7 +65,11 @@ export async function POST(req: NextRequest) {
     let transformer = sharp(Buffer.from(await originalFile.arrayBuffer()))
     if (rotation) transformer = transformer.rotate(rotation)
     if (flipH || flipV) transformer = transformer.flip(flipV).flop(flipH)
-    const original = await transformer.webp({ quality: 95, effort: 4 }).toBuffer()
+    // Botón "Comprimir" del moderador: tope de tamaño y calidad. Rotar o voltear solos no comprimen
+    if (compress) {
+      transformer = transformer.resize({ width: ORIGINAL_MAX_PX, height: ORIGINAL_MAX_PX, fit: 'inside', withoutEnlargement: true })
+    }
+    const original = await transformer.webp({ quality: compress ? ORIGINAL_QUALITY : 95, effort: 4 }).toBuffer()
 
     // Miniatura y mediana salen de la original ya transformada (mismos tamaños que en /api/upload)
     const thumb = await sharp(original)
